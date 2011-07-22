@@ -11,12 +11,10 @@
     !define COMMAND_PATTERN {java -cp %p %m}
     !define PATH_SEPARATOR {:}
 
+    !path dist/fitnesse.jar
     !path clojureslim/lib/clojure-1.2.1.jar
-    !path clojureslim/lib/fitnesse-20110721.jar
     !path clojureslim/src
 
     !|script|CljTest|
     | run |
-
-
 
