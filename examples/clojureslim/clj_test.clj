@@ -23,11 +23,9 @@
   (CljTest. nil))
 
 (defn test-slim []
-  (println "constructing test-slim")
   (CljTest. (atom {})))
 
 (defn echo-boolean [this arg]
-  (println "echo-boolean args: " arg)
   (boolean arg))
 
 
@@ -63,7 +61,23 @@
                :input
                (Integer/parseInt in)))
 
+(defn set-string [this in]
+  (fixture-set this :string in))
+
+(defn get-string-arg [this]
+  (:string @(:state this)))
+
 (defn output [this]
   (let [in (:input @(:state this))]
-    (println "fetching input in the output getter: " in)
     (* in 2)))
+
+
+(defn test-query [& args]
+  (CljTest. (atom {:args args})))
+
+(defn query [& args]
+  [           ; whole table
+   [          ; first [and only] row
+    ["n" 1]   ; first column  (label-value)
+    ["2n" 2]  ; second column (label-value)
+]])

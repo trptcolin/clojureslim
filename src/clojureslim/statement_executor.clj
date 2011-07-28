@@ -41,18 +41,26 @@
         (catch Exception e (println e) (throw e)))
       "OK")
 
-    ; TODO: handle actual arg-passing
-    ; TODO: handle wrong # of args to constructor and other reflection problems
     (create [instance-name fixture-name args]
-      (let [replaced-fixture-name (first (replace-slim-variables [fixture-name]))]
-        (if-let [fixture-generator (find-function (tt/dasherize replaced-fixture-name))]
-            (if-let [instance (apply fixture-generator args)]
-              (do (swap! instances assoc instance-name instance)
-                "OK")
-              (do (print-str exception-tag "Problem creating" replaced-fixture-name)
-                  ))
-            (do (print-str exception-tag "Couldn't find fixture for" replaced-fixture-name)
-                ))))
+      (try
+        (let [replaced-fixture-name (tt/dasherize (first (replace-slim-variables [fixture-name])))]
+          (if (re-seq #"^library" instance-name)
+            ; include library globally
+            (do
+              (.addPath this fixture-name))
+            ; call-function
+            (if-let [fixture-generator (find-function (tt/dasherize replaced-fixture-name))]
+              (if-let [instance (apply fixture-generator args)]
+                (do (swap! instances assoc instance-name instance)
+                  "OK")
+                (do
+                  (print-str exception-tag "Got no instance from the constructor" fixture-generator)))
+              (do
+                (print-str exception-tag "Couldn't find fixture for" replaced-fixture-name)))))
+        (catch Throwable e
+          (print-str exception-tag
+                     "Problem creating fixture for" fixture-name
+                     "\n" (tt/pr-str-stack-trace e)))))
 
     ; public abstract Object getInstance(String instanceName);
     ; TODO: implement. who calls this anyway?
