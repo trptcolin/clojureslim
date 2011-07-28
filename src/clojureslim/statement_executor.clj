@@ -12,11 +12,7 @@
   (swap! slim-variables assoc variable value))
 
 (defn replace-slim-variables [args]
-  (map (fn [arg]
-         (str (get @slim-variables
-                (string/replace arg #"^\$" "")
-                arg)))
-       args))
+  (tt/replace-slim-variables @slim-variables args))
 
 (defn find-function
   ([name]
@@ -100,11 +96,5 @@
                ", args" args)
       (let [result (.call this instance-name method-name args)]
         (assign-slim-variable variable result)
-        result
-        ))
-
-
-
-))
-
+        result))))
 
