@@ -1,4 +1,4 @@
-(ns clojureslim.clj-test)
+(ns clojureslim.fixtures)
 
 
 (defn fixture-set [fixture field value]
