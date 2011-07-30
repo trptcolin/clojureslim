@@ -13,7 +13,8 @@
   like [a-zA-Z_]), and attempts to replace them from the map. Falls back to
   leaving the variable name in place."
   [slim-variables initial-string]
-  (let [variable-attempts (re-seq #"\$[^$\W]*" initial-string)
+  (let [variable-attempts (reverse (sort-by count
+                                            (re-seq #"\$[^$\W]*" initial-string)))
         replacements (map (partial get-slim-variable-value slim-variables)
                           variable-attempts)]
     (if (every? string? replacements)

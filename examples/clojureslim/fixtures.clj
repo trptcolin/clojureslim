@@ -22,6 +22,9 @@
 (defn echo-fixture []
   (make-fixture))
 
+(defn echo-string [this s]
+  s)
+
 (defn test-slim [& args]
   (let [[first-arg & others] args]
     (if first-arg

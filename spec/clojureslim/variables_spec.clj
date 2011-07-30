@@ -26,6 +26,13 @@
                 "FOO" "bar"}
                "$FOO-query-$THEKEY")))
 
+  (it "allows similarly-named variables"
+    (should= "foo-bar-baz"
+             (replace-slim-variables-in-string
+               {"VALUE" "bar"
+                "VALUEX" "baz"}
+               "foo-$VALUE-$VALUEX")))
+
   (it "replaces with non-string variable values"
     (let [container (atom {})]
       (should= container
