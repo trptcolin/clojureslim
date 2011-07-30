@@ -1,9 +1,13 @@
 (ns clojureslim.statement-executor
   (:require [clojureslim.text-transformations :as tt]
+            [clojureslim.variables :as variables]
             [clojure.string :as string])
   (:import [fitnesse.slim StatementExecutor]))
 
 (def instances (atom {}))
+(defn set-instance [instance-name value]
+  (swap! instances assoc instance-name value))
+
 (def slim-variables (atom {}))
 
 (def exception-tag "__EXCEPTION__:")
@@ -12,7 +16,7 @@
   (swap! slim-variables assoc variable value))
 
 (defn replace-slim-variables [args]
-  (tt/replace-slim-variables @slim-variables args))
+  (variables/replace-slim-variables @slim-variables args))
 
 (defn find-function
   ([name]
@@ -43,20 +47,27 @@
 
     (create [instance-name fixture-name args]
       (try
-        (let [replaced-fixture-name (tt/dasherize (first (replace-slim-variables [fixture-name])))]
-          (if (re-seq #"^library" instance-name)
-            ; include library globally
-            (do
-              (.addPath this fixture-name))
-            ; call-function
-            (if-let [fixture-generator (find-function (tt/dasherize replaced-fixture-name))]
-              (if-let [instance (apply fixture-generator args)]
-                (do (swap! instances assoc instance-name instance)
-                  "OK")
-                (do
-                  (print-str exception-tag "Got no instance from the constructor" fixture-generator)))
-              (do
-                (print-str exception-tag "Couldn't find fixture for" replaced-fixture-name)))))
+        (let [fixture-name-or-instance (first (replace-slim-variables [fixture-name]))
+              _ (prn fixture-name-or-instance)]
+          (cond (not (string? fixture-name-or-instance))
+                  (do (swap! instances assoc instance-name fixture-name-or-instance)
+                    "OK")
+                (re-seq #"^library" instance-name)
+                  ; include library globally
+                  (do
+                    (.addPath this fixture-name))
+                  ; call-function
+                :default
+                  (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)
+                        _ (prn replaced-fixture-name)]
+                    (if-let [fixture-generator (find-function replaced-fixture-name)]
+                      (if-let [instance (apply fixture-generator args)]
+                        (do (swap! instances assoc instance-name instance)
+                          "OK")
+                        (do
+                          (print-str exception-tag "Got no instance from the constructor" fixture-generator)))
+                      (do
+                        (print-str exception-tag "Couldn't find fixture for" replaced-fixture-name))))))
         (catch Throwable e
           (print-str exception-tag
                      "Problem creating fixture for" fixture-name
@@ -65,8 +76,12 @@
     ; public abstract Object getInstance(String instanceName);
     ; TODO: implement. who calls this anyway?
     (getInstance [instance-name]
-      (println "getInstance called"))
+      (println "getInstance called: " instance-name)
+      (let [instance (get @instances instance-name)]
+        (prn instance)
+        instance))
 
+    ; TODO: make this smarter - use same ns as the instance
     (call [instance-name method-name args]
       (let [replaced-args (replace-slim-variables args)]
         (try
@@ -101,7 +116,7 @@
       (println "callAndAssign called with variable" variable
                ", instance-name" instance-name
                ", method-name" method-name
-               ", args" args)
+               ", args" (seq args))
       (let [result (.call this instance-name method-name args)]
         (assign-slim-variable variable result)
         result))))
