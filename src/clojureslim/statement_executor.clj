@@ -48,7 +48,7 @@
     (create [instance-name fixture-name args]
       (try
         (let [fixture-name-or-instance (first (replace-slim-variables [fixture-name]))
-              _ (prn fixture-name-or-instance)]
+              args (replace-slim-variables args)]
           (cond (not (string? fixture-name-or-instance))
                   (do (swap! instances assoc instance-name fixture-name-or-instance)
                     "OK")

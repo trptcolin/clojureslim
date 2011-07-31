@@ -1,6 +1,7 @@
 (ns clojureslim.fixtures
   (:require [clojureslim.statement-executor :as se])
-  (:import [java.io Writer]))
+  (:import [java.io Writer]
+           [fitnesse.fixtures SplitFixture]))
 
 (defrecord TestSlim [constructor-arg state]
   Object
@@ -9,12 +10,12 @@
       (str "TestSlim: " constructor-arg ", " (:string @state))
       (str "TestSlim: null, " @state))))
 
-(defn make-fixture [& args]
-  (let [arg (first args)
-        t (TestSlim. arg (atom {}))]
-    (println "making fixture: " t)
-    t))
-
+(defn make-fixture
+  ([] (make-fixture nil))
+  ([constructor-arg]
+   (TestSlim. constructor-arg (atom {})))
+  ([constructor-arg base-fixture]
+   (TestSlim. constructor-arg (atom @(:state base-fixture)))))
 
 (defn echo [this thing-to-echo]
   thing-to-echo)
@@ -25,11 +26,12 @@
 (defn echo-string [this s]
   s)
 
-(defn test-slim [& args]
-  (let [[first-arg & others] args]
-    (if first-arg
-      (apply make-fixture args)
-      (make-fixture 0))))
+(defn test-slim
+  ([]
+   (make-fixture 0))
+  ([& args]
+    (println "vararg test-slim called with" args)
+    (apply make-fixture args)))
 
 (defn echo-boolean [this arg]
   (boolean arg))
@@ -72,20 +74,34 @@
 (defn get-string-arg [this]
   (:string @(:state this)))
 
+(defn is-same [this other]
+  (= this other))
+
+(defn get-string-from-other [this other]
+  (get-string-arg other))
+
+(defn return-constructor-arg [this]
+  (:constructor-arg this))
+
 (defn output [this]
   (let [in (:input @this)]
     (* in 2)))
 
+(defprotocol QueryTable
+  (query [this]))
+
+; whole table
+; first [and only] row
+; first column  (label-value)
+; second column (label-value)
+(defrecord TestQuery [args]
+  QueryTable
+  (query [this]
+    [[["n" 1]
+      ["2n" 2]]]))
 
 (defn test-query [& args]
-  (atom {:args args}))
-
-(defn query [& args]
-  [           ; whole table
-   [          ; first [and only] row
-    ["n" 1]   ; first column  (label-value)
-    ["2n" 2]  ; second column (label-value)
-]])
+  (TestQuery. args))
 
 
 (defn create-test-slim-with-string [this s]
@@ -112,3 +128,13 @@
 
 (defn uncle []
   (make-fixture))
+
+
+; TODO: extract?
+(extend-type SplitFixture
+  QueryTable
+  (query [this]
+    (.query this)))
+
+(defn split-fixture [string-to-split]
+  (SplitFixture. string-to-split))
