@@ -1,7 +1,8 @@
 (ns clojureslim.fixtures
   (:require [clojureslim.statement-executor :as se])
   (:import [java.io Writer]
-           [fitnesse.fixtures SplitFixture]))
+           [fitnesse.fixtures SplitFixture
+                              DuplicateRows]))
 
 (defrecord TestSlim [constructor-arg state]
   Object
@@ -25,6 +26,9 @@
 
 (defn echo-string [this s]
   s)
+
+(defn echo-int [this i]
+  i)
 
 (defn test-slim
   ([]
@@ -173,3 +177,21 @@
   (make-fixture))
 (defn do-table [this args]
   )
+
+(extend-type DuplicateRows
+  QueryTable
+  (query [this]
+    (.query this)))
+
+(defn duplicate-rows [arg]
+  (DuplicateRows. arg))
+
+; TODO: avoid the need to do things like this by ordering the search path
+(defn set-the-name [this s]
+  (swap! (:state this) assoc :the-name s))
+(defn the-name [this]
+  (:the-name @(:state this)))
+
+
+(defn concatenate-three-args [this a b c]
+  (str a " " b " " c))
