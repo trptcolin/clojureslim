@@ -168,3 +168,8 @@
 (defn my-system-under-test-driver []
   (MySystemUnderTestDriver. (make-system-under-test)
                             (atom false)))
+
+(defn dummy-table-table-returns-null []
+  (make-fixture))
+(defn do-table [this args]
+  )

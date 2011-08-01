@@ -6,12 +6,16 @@
                  (string/replace word #"\$" "")
                  word))
 
-; TODO: do we ever have a weird case of multiple non-string values?
-(defn replace-slim-variables-in-string
-  "Finds Slim variables in the given string from the given map of variables,
+(defmulti replace-slim-variables-in
+  "Finds Slim variables in the given object from the given map of variables,
   designated by $ followed by any word characters (\\w in a regex sense, just
   like [a-zA-Z_]), and attempts to replace them from the map. Falls back to
   leaving the variable name in place."
+  (comp type second vector))
+
+; TODO: do we ever have a weird case of multiple non-string values?
+(defmethod replace-slim-variables-in
+  String
   [slim-variables initial-string]
   (let [variable-attempts (reverse (sort-by count
                                             (re-seq #"\$[^$\W]*" initial-string)))
@@ -24,6 +28,10 @@
         variable-attempts)
       (first replacements))))
 
+(defmethod replace-slim-variables-in
+  :default
+  [slim-variables initial-object]
+  initial-object)
 
 (defn replace-slim-variables [slim-variables args]
-  (map (partial replace-slim-variables-in-string slim-variables) args))
+  (map (partial replace-slim-variables-in slim-variables) args))
