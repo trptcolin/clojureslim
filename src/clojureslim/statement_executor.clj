@@ -58,6 +58,12 @@
                   (do
                     (.addPath this fixture-name))
                   ; call-function
+                (re-seq #"/" fixture-name)
+                  (let [[fixture-ns fixture-fn] (string/split fixture-name #"/")]
+                    (prn fixture-ns fixture-fn)
+                    (apply
+                      (ns-resolve (symbol fixture-ns) (symbol fixture-fn))
+                      args))
                 :default
                   (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)
                         _ (prn replaced-fixture-name)]

@@ -34,7 +34,6 @@
   ([]
    (make-fixture 0))
   ([& args]
-    (println "vararg test-slim called with" args)
     (apply make-fixture args)))
 
 (defn echo-boolean [this arg]
@@ -72,7 +71,6 @@
   (swap! this assoc :input (Integer/parseInt in)))
 
 (defn set-string [this in]
-  (println (:state this))
   (swap! (:state this) assoc :string in))
 
 (defn get-string-arg [this]
@@ -195,3 +193,9 @@
 
 (defn concatenate-three-args [this a b c]
   (str a " " b " " c))
+
+(defn login-dialog-driver [username password]
+  (make-fixture [username password]))
+
+(defn login-with-username-and-password [this username password]
+  (= (:constructor-arg this) [username password]))
