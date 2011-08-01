@@ -42,8 +42,9 @@
     (addPath [path]
       (try
         (require (symbol path))
-        (catch Exception e (println e) (throw e)))
-      "OK")
+        "OK"
+        (catch Exception e
+          (str exception-tag " " e))))
 
     (create [instance-name fixture-name args]
       (try

@@ -138,3 +138,33 @@
 
 (defn split-fixture [string-to-split]
   (SplitFixture. string-to-split))
+
+(defn null-fixture
+  ([] (make-fixture))
+  ([s] (make-fixture)))
+
+(defn get-null [this]
+  nil)
+
+(defn get-blank [this]
+  "")
+
+(defrecord MySystemUnderTestDriver [system-under-test called])
+
+(defn make-system-under-test []
+  {:called (atom false)})
+
+(defn foo [this]
+  (swap! (:called this) not))
+(def bar
+  (comp foo :system-under-test))
+
+(defn driver-called [this]
+  @(:called this))
+(defn system-under-test-called [this]
+  @(:called (:system-under-test this)))
+
+
+(defn my-system-under-test-driver []
+  (MySystemUnderTestDriver. (make-system-under-test)
+                            (atom false)))
