@@ -19,13 +19,14 @@
       statement-executor)))
 
 (defn -main [& args]
-  (let [port (Integer/parseInt (first args))
+  (let [port (Integer/parseInt (last args))
+        verbose (boolean (some #{"-v" "--verbose"} args))
         method-name-translator (make-method-name-translator)
         statement-executor (statement-executor/make-statement-executor)
         slim-factory (make-clojure-slim-factory
                        method-name-translator
                        statement-executor)
-        verbose true
         slim-server (.getSlimServer slim-factory verbose)]
-    (SlimService. port slim-server)))
+    (SlimService. port slim-server)
+    0))
 
