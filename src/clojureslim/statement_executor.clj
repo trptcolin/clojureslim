@@ -68,13 +68,15 @@
                   (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)
                         _ (prn replaced-fixture-name)]
                     (if-let [fixture-generator (find-function replaced-fixture-name)]
-                      (if-let [instance (apply fixture-generator args)]
-                        (do (swap! instances assoc instance-name instance)
-                          "OK")
-                        (do
-                          (print-str exception-tag "Got no instance from the constructor" fixture-generator)))
+                      (let [instance (apply fixture-generator args)]
+                        (swap! instances assoc instance-name instance)
+                        "OK")
                       (do
-                        (print-str exception-tag "Couldn't find fixture for" replaced-fixture-name))))))
+                        (print-str
+                          exception-tag
+                          (format "message:<<COULD_NOT_INVOKE_CONSTRUCTOR %s[%d]>>"
+                                  replaced-fixture-name
+                                  (count args))))))))
         (catch Throwable e
           (print-str exception-tag
                      "Problem creating fixture for" fixture-name
@@ -99,8 +101,10 @@
             (if (unreported-exception-function-names method-name)
               nil
               (print-str exception-tag
-                         "problem with"
-                         method-name
+                         (format "message:<<NO_METHOD_IN_CLASS %s[%d] %s>>"
+                                 method-name
+                                 (count args)
+                                 instance-name)
                          (pr-str (first replaced-args))
                          (tt/pr-str-stack-trace e)))))))
 
