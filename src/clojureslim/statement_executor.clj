@@ -60,13 +60,11 @@
                   ; call-function
                 (re-seq #"/" fixture-name)
                   (let [[fixture-ns fixture-fn] (string/split fixture-name #"/")]
-                    (prn fixture-ns fixture-fn)
                     (apply
                       (ns-resolve (symbol fixture-ns) (symbol fixture-fn))
                       args))
                 :default
-                  (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)
-                        _ (prn replaced-fixture-name)]
+                  (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)]
                     (if-let [fixture-generator (find-function replaced-fixture-name)]
                       (let [instance (apply fixture-generator args)]
                         (swap! instances assoc instance-name instance)
@@ -87,7 +85,6 @@
     (getInstance [instance-name]
       (println "getInstance called: " instance-name)
       (let [instance (get @instances instance-name)]
-        (prn instance)
         instance))
 
     ; TODO: make this smarter - use same ns as the instance
