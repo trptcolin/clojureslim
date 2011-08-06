@@ -18,7 +18,7 @@
     (getStatementExecutor []
       statement-executor)))
 
-(defn main [& args]
+(defn -main [& args]
   (let [port (Integer/parseInt (first args))
         method-name-translator (make-method-name-translator)
         statement-executor (statement-executor/make-statement-executor)

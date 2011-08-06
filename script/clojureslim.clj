@@ -1,3 +1,3 @@
 (require 'clojureslim)
 
-(apply clojureslim/main *command-line-args*)
+(apply clojureslim/-main *command-line-args*)
