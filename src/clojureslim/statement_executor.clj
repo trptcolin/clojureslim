@@ -31,6 +31,13 @@
 (def unreported-exception-function-names
   #{"table" "begin-table" "end-table" "reset" "execute"})
 
+(defn add-library-path [path]
+  (try
+    (require (symbol path))
+    "OK"
+    (catch Exception e
+      (str exception-tag " " e))))
+
 (defn make-statement-executor []
   (proxy [StatementExecutor] []
 
@@ -40,25 +47,28 @@
       (println "setVariable called"))
 
     (addPath [path]
-      (try
-        (require (symbol path))
-        "OK"
-        (catch Exception e
-          (str exception-tag " " e))))
+      (add-library-path path))
 
     (create [instance-name fixture-name args]
       (try
         (let [fixture-name-or-instance (first (replace-slim-variables [fixture-name]))
               args (replace-slim-variables args)]
           (cond (not (string? fixture-name-or-instance))
-                  (do (swap! instances assoc instance-name fixture-name-or-instance)
-                    "OK")
-                (re-seq #"^library" instance-name)
-                  ; include library globally
                   (do
-                    (.addPath this fixture-name))
-                  ; call-function
+                    (swap! instances assoc instance-name fixture-name-or-instance)
+                    "OK")
+
+                (re-seq #"^library" instance-name)
+                  ; TODO: actually, should this used as a package / prefix instead?
+                  ; include library globally
+                  (let [include-attempt (add-library-path fixture-name)]
+                    (if (not= "OK" include-attempt)
+                      (add-library-path (tt/dasherize fixture-name))
+                      include-attempt))
+
+
                 (re-seq #"/" fixture-name)
+                  ; call function
                   (let [[fixture-ns fixture-fn] (string/split fixture-name #"/")]
                     (apply
                       (ns-resolve (symbol fixture-ns) (symbol fixture-fn))

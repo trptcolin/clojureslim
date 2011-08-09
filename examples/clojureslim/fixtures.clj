@@ -18,8 +18,10 @@
   ([constructor-arg base-fixture]
    (TestSlim. constructor-arg (atom @(:state base-fixture)))))
 
-(defn echo [this thing-to-echo]
-  thing-to-echo)
+(defn echo
+  ([] "")
+  ([this] "")
+  ([this thing-to-echo] thing-to-echo))
 
 (defn echo-fixture []
   (make-fixture))
@@ -29,6 +31,14 @@
 
 (defn echo-int [this i]
   i)
+
+(defn echo-support-called [this]
+  )
+(defn special-echo-support-called [this]
+  )
+
+(defn echo-in-set-up-library-called [this]
+  )
 
 (defn test-slim
   ([]
@@ -199,3 +209,35 @@
 
 (defn login-with-username-and-password [this username password]
   (= (:constructor-arg this) [username password]))
+
+(defn create-page-with-content
+  ([this page-name content]))
+
+(defn send-as-hash [this h]
+  )
+
+(defn hash-is [this h]
+  )
+
+(defn set-up []
+  (make-fixture))
+
+(defn page-driver []
+  (make-fixture))
+
+(defn library-fixture []
+  (prn "trying to construct library-fixture")
+  (make-fixture))
+
+(defn make-a-test-page
+  ([this test-page-name])
+  ([this test-page-name test-page]))
+
+(defn content-contains [this content]
+  )
+
+(defn request-page [this page]
+  )
+
+(defn content [this]
+  )
