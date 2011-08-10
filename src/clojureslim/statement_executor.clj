@@ -1,141 +1,126 @@
 (ns clojureslim.statement-executor
-  (:require [clojureslim.text-transformations :as tt]
+  (:require [clojureslim.fitnesse-messages :as messages]
+            [clojureslim.text-transformations :as tt]
             [clojureslim.variables :as variables]
             [clojure.string :as string])
   (:import [fitnesse.slim StatementExecutor]))
 
-(def instances (atom {}))
-(defn set-instance [instance-name value]
-  (swap! instances assoc instance-name value))
+(def ^{:future-ns :variables}
+  slim-variables (atom {}))
 
-(def slim-variables (atom {}))
-
-(def exception-tag "__EXCEPTION__:")
-
-(defn assign-slim-variable [variable value]
+(defn ^{:future-ns :variables}
+  assign-slim-variable [variable value]
   (swap! slim-variables assoc variable value))
 
-(defn replace-slim-variables [args]
+(defn ^{:future-ns :variables}
+  replace-slim-variables [args]
   (variables/replace-slim-variables @slim-variables args))
 
 (defn find-function
   ([name]
     (last ; the var itself
+      ; TODO: pick smarter - use same ns as the constructor?
       (first ; TODO: handle collisions
-              (filter (fn [[k v]] (= k (symbol name)))
-                      (mapcat ns-publics (all-ns))))))
-  ; TODO: pick smartly - same ns as the constructor
+        (filter (fn [[k v]] (= k (symbol name)))
+                (mapcat ns-publics (all-ns))))))
   ([name instance]
    (find-function name)))
 
-(def unreported-exception-function-names
-  #{"table" "begin-table" "end-table" "reset" "execute"})
-
-(defn add-library-path [path]
+(defn ^{:future-ns :statement-executor-impl}
+  add-library-path [path]
   (try
     (require (symbol path))
-    "OK"
+    (messages/success)
     (catch Exception e
-      (str exception-tag " " e))))
+      (messages/library-error e))))
+
+(def instances (atom {}))
+
+(defn set-instance [slim-id value]
+  (swap! instances assoc slim-id value))
+
+(defn get-instance [slim-id]
+  (get @instances slim-id))
+
+
+(defmulti create-fixture (fn []))
+
+(defn use-existing-fixture [slim-id fixture-name-or-instance]
+  (do
+    (set-instance slim-id fixture-name-or-instance)
+    (messages/success)))
+
+(defn add-library-or-dasherized-library [fixture-name]
+  ; TODO: actually, should this used as a package / prefix instead?
+  (let [include-attempt (add-library-path fixture-name)]
+    (if (not= (messages/success) include-attempt)
+      (add-library-path (tt/dasherize fixture-name))
+      include-attempt)))
+
+(defn ^{:future-ns :statement-executor-impl}
+  create-fixture [slim-id fixture-name args]
+  (try
+    (let [fixture-name-or-instance (first (replace-slim-variables [fixture-name]))
+          args (replace-slim-variables args)]
+      (cond (not (string? fixture-name-or-instance))
+              (use-existing-fixture slim-id fixture-name-or-instance)
+
+            (re-seq #"^library" slim-id)
+              (add-library-or-dasherized-library fixture-name)
+
+            (re-seq #"/" fixture-name)
+              (let [[fixture-ns fixture-fn] (string/split fixture-name #"/")]
+                (apply
+                  (ns-resolve (symbol fixture-ns) (symbol fixture-fn))
+                  args))
+
+            :default
+              (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)]
+                (if-let [fixture-generator (find-function replaced-fixture-name)]
+                  (let [instance (apply fixture-generator args)]
+                    (swap! instances assoc slim-id instance)
+                    (messages/success))
+                  (messages/constructor-error replaced-fixture-name args)))))
+    (catch Throwable e
+      (messages/unexpected-constructor-error fixture-name e))))
+
+(defn ^{:future-ns :statement-executor-impl}
+  call-fixture-method [slim-id method-name args]
+  ; TODO: make this smarter - use same ns as the instance?
+  (let [replaced-args (replace-slim-variables args)]
+    (try
+      (let [instance (@instances slim-id)
+            method (find-function method-name instance)]
+        (apply method instance replaced-args))
+      (catch Throwable e
+        (messages/method-call-error slim-id method-name args e)))))
 
 (defn make-statement-executor []
   (proxy [StatementExecutor] []
 
-    ; public abstract void setVariable(String name, Object value);
-    ;   TODO: postponing for now because its only effects are changing behavior of other methods
-    (setVariable [name value]
-      (println "setVariable called"))
+    ; TODO: when does this get called?
+    (setVariable [name value])
 
     (addPath [path]
       (add-library-path path))
 
-    (create [instance-name fixture-name args]
-      (try
-        (let [fixture-name-or-instance (first (replace-slim-variables [fixture-name]))
-              args (replace-slim-variables args)]
-          (cond (not (string? fixture-name-or-instance))
-                  (do
-                    (swap! instances assoc instance-name fixture-name-or-instance)
-                    "OK")
+    (create [slim-id fixture-name args]
+      (create-fixture slim-id fixture-name args))
 
-                (re-seq #"^library" instance-name)
-                  ; TODO: actually, should this used as a package / prefix instead?
-                  ; include library globally
-                  (let [include-attempt (add-library-path fixture-name)]
-                    (if (not= "OK" include-attempt)
-                      (add-library-path (tt/dasherize fixture-name))
-                      include-attempt))
+    (getInstance [slim-id]
+      (get-instance slim-id))
 
+    (call [slim-id method-name args]
+      (call-fixture-method slim-id method-name args))
 
-                (re-seq #"/" fixture-name)
-                  ; call function
-                  (let [[fixture-ns fixture-fn] (string/split fixture-name #"/")]
-                    (apply
-                      (ns-resolve (symbol fixture-ns) (symbol fixture-fn))
-                      args))
-                :default
-                  (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)]
-                    (if-let [fixture-generator (find-function replaced-fixture-name)]
-                      (let [instance (apply fixture-generator args)]
-                        (swap! instances assoc instance-name instance)
-                        "OK")
-                      (do
-                        (print-str
-                          exception-tag
-                          (format "message:<<COULD_NOT_INVOKE_CONSTRUCTOR %s[%d]>>"
-                                  replaced-fixture-name
-                                  (count args))))))))
-        (catch Throwable e
-          (print-str exception-tag
-                     "Problem creating fixture for" fixture-name
-                     "\n" (tt/pr-str-stack-trace e)))))
+    ; TODO: anything we need to do here?
+    (stopHasBeenRequested [] false)
 
-    ; public abstract Object getInstance(String instanceName);
-    ; TODO: implement. who calls this anyway?
-    (getInstance [instance-name]
-      (println "getInstance called: " instance-name)
-      (let [instance (get @instances instance-name)]
-        instance))
+    ; TODO: what is this supposed to do?
+    (reset [])
 
-    ; TODO: make this smarter - use same ns as the instance
-    (call [instance-name method-name args]
-      (let [replaced-args (replace-slim-variables args)]
-        (try
-          (let [instance (@instances instance-name)
-                method (find-function method-name instance)]
-              (apply method instance replaced-args))
-          (catch Throwable e
-            (if (unreported-exception-function-names method-name)
-              nil
-              (print-str exception-tag
-                         (format "message:<<NO_METHOD_IN_CLASS %s[%d] %s>>"
-                                 method-name
-                                 (count args)
-                                 instance-name)
-                         (pr-str (first replaced-args))
-                         (tt/pr-str-stack-trace e)))))))
-
-    ; public abstract boolean stopHasBeenRequested();
-    ; TODO: this definitely won't do in the long run
-    (stopHasBeenRequested []
-      false)
-
-    ; public abstract void reset();
-    ; TODO: implement
-    (reset []
-      (println "reset called"))
-
-    ; public abstract Object callAndAssign(String variable, String instanceName, String methodName,
-    ;     Object[] args);
-    ; store slim variables
-    ; TODO: store these
-    ; TODO: replace method calls with the values that are stored
-    (callAndAssign [variable instance-name method-name args]
-      (println "callAndAssign called with variable" variable
-               ", instance-name" instance-name
-               ", method-name" method-name
-               ", args" (seq args))
-      (let [result (.call this instance-name method-name args)]
+    (callAndAssign [variable slim-id method-name args]
+      (let [result (call-fixture-method slim-id method-name args)]
         (assign-slim-variable variable result)
         result))))
 

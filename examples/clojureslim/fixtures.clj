@@ -2,7 +2,8 @@
   (:require [clojureslim.statement-executor :as se])
   (:import [java.io Writer]
            [fitnesse.fixtures SplitFixture
-                              DuplicateRows]))
+                              DuplicateRows
+                              PageDriver]))
 
 (defrecord TestSlim [constructor-arg state]
   Object
@@ -213,16 +214,21 @@
 (defn create-page-with-content
   ([this page-name content]))
 
-(defn send-as-hash [this h]
-  )
+(def page-driver-obj (atom nil))
+(defn page-driver []
+  (or @page-driver-obj
+      (do
+        (swap! page-driver-obj (constantly (PageDriver.)))
+        @page-driver-obj)))
 
-(defn hash-is [this h]
-  )
+(defn send-as-hash [this h]
+  (let [pd (page-driver)]
+    (.sendAsHash (page-driver) h)))
+
+(defn hash-is [this k]
+  (.hashIs this k))
 
 (defn set-up []
-  (make-fixture))
-
-(defn page-driver []
   (make-fixture))
 
 (defn library-fixture []

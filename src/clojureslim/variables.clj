@@ -13,7 +13,6 @@
   leaving the variable name in place."
   (comp type second vector))
 
-; TODO: do we ever have a weird case of multiple non-string values?
 (defmethod replace-slim-variables-in
   String
   [slim-variables initial-string]
