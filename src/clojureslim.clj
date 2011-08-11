@@ -1,10 +1,8 @@
 (ns clojureslim
   (:require [clojureslim.statement-executor :as statement-executor]
             [clojureslim.text-transformations :as tt])
-  (:import [fitnesse.slim JavaSlimFactory
-                          NameTranslator
+  (:import [fitnesse.slim NameTranslator
                           SlimFactory
-                          SlimServer
                           SlimService]))
 
 (defn make-method-name-translator []
@@ -13,10 +11,8 @@
 
 (defn make-clojure-slim-factory [method-name-translator statement-executor]
   (proxy [SlimFactory] []
-    (getMethodNameTranslator []
-      method-name-translator)
-    (getStatementExecutor []
-      statement-executor)))
+    (getMethodNameTranslator [] method-name-translator)
+    (getStatementExecutor [] statement-executor)))
 
 (defn -main [& args]
   (let [port (Integer/parseInt (last args))

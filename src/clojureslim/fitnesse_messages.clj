@@ -21,8 +21,11 @@
              "Problem creating fixture for" fixture-name
              "\n" (tt/pr-str-stack-trace e)))
 
-(defn library-error [e]
-  (str exception-tag " " e))
+(defn unexpected-error [e]
+  (print-str exception-tag e "\n" (tt/pr-str-stack-trace e)))
+
+(defn library-error [library-name]
+  (str exception-tag " no library found for " library-name))
 
 (defn method-call-error [slim-id method-name args e]
   (if (unreported-exception-function-names method-name)
