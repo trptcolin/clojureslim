@@ -28,18 +28,22 @@
     (set-instance slim-id fixture-name-or-instance)
     (messages/success)))
 
+(def paths (atom []))
+(defn add-path [path]
+  (swap! paths conj path))
+
 (defn ^{:future-ns :statement-executor-impl}
-  add-library-path [slim-id path]
+  maybe-add-library [slim-id library-name]
   (try
-    (require (symbol path))
-    (set-instance slim-id {:kind :library :path (symbol path)})
+    (require (symbol library-name))
+    ;(set-instance slim-id {:kind :library :path (symbol path)})
     true
     (catch Exception e nil)))
 
 (defn ^{:future-ns :statement-executor-impl}
   add-library [slim-id library-name]
-  (if-let [ok (or (add-library-path slim-id library-name)
-                  (add-library-path slim-id (tt/dasherize library-name)))]
+  (if-let [ok (or (maybe-add-library slim-id library-name)
+                  (maybe-add-library slim-id (tt/dasherize library-name)))]
     (messages/success)
     (messages/library-error library-name)))
 
@@ -66,13 +70,12 @@
                   (let [instance (apply fixture-generator args)]
                     (set-instance slim-id instance)
                     (messages/success))
-                  (messages/constructor-error replaced-fixture-name args)))))
+                  (messages/no-constructor-error replaced-fixture-name args)))))
     (catch Throwable e
-      (messages/unexpected-constructor-error fixture-name e))))
+      (messages/constructor-error fixture-name args e))))
 
 (defn ^{:future-ns :statement-executor-impl}
   call-fixture-method [slim-id method-name args]
-  ; TODO: make this smarter - use same ns as the instance?
   (try
     (let [replaced-args (variables/replace-slim-variables args)
           instance (get-instance slim-id)
@@ -97,7 +100,7 @@
     (setVariable [name value])
 
     (addPath [path]
-      (add-library-path path))
+      (add-path path))
 
     (create [slim-id fixture-name args]
       (create-fixture slim-id fixture-name args))

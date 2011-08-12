@@ -24,13 +24,10 @@
       (first replacements))))
 
 ; TODO: test this
-(defn ^{:public-api true}
-  assign-slim-variable
-  [variable value]
+(defn assign-slim-variable [variable value]
   (swap! slim-variables assoc variable value))
 
-(defmulti ^{:public-api true}
-  replace-slim-variables
+(defmulti replace-slim-variables
   "Finds Slim variables in the given objects from the given map of variables,
   designated by $ followed by any word characters (\\w in a regex sense, just
   like [a-zA-Z_]), and attempts to replace them from the map. Falls back to
@@ -38,7 +35,7 @@
   type)
 
 (defmethod replace-slim-variables
-  java.lang.String
+  java.lang.CharSequence
   [arg]
   (replace-slim-variables-in @slim-variables arg))
 
