@@ -9,13 +9,18 @@
 (defn success []
   "OK")
 
+(defn format-error [& args]
+  (when-not (System/getProperty "clojureslim.nodebug")
+    (apply print args))
+  (apply print-str args))
+
 (defn no-constructor-error [name args]
-  (print-str exception-tag
-             (format "message:<<NO_CONSTRUCTOR %s>>"
-                     name)))
+  (format-error exception-tag
+                (format "message:<<NO_CONSTRUCTOR %s>>"
+                        name)))
 
 (defn constructor-error [name args e]
-  (print-str
+  (format-error
     exception-tag
     (format "message:<<COULD_NOT_INVOKE_CONSTRUCTOR %s[%d]>>"
             name
@@ -24,18 +29,18 @@
             (tt/pr-str-stack-trace e))))
 
 (defn unexpected-error [e]
-  (print-str exception-tag e "\n" (tt/pr-str-stack-trace e)))
+  (format-error exception-tag e "\n" (tt/pr-str-stack-trace e)))
 
 (defn library-error [library-name]
-  (print-str exception-tag " no library found for " library-name))
+  (format-error exception-tag " no library found for " library-name))
 
 (defn method-call-error [slim-id method-name args e]
   (if (unreported-exception-function-names method-name)
       nil
-      (print-str exception-tag
-                 (format "message:<<NO_METHOD_IN_CLASS %s[%d] %s>>"
-                         method-name
-                         (count args)
-                         slim-id)
-                 (tt/pr-str-stack-trace e))))
+      (format-error exception-tag
+                    (format "message:<<NO_METHOD_IN_CLASS %s[%d] %s>>"
+                            method-name
+                            (count args)
+                            slim-id)
+                    (tt/pr-str-stack-trace e))))
 
