@@ -28,17 +28,13 @@
     (set-instance slim-id fixture-name-or-instance)
     (messages/success)))
 
-(def paths (atom []))
-(defn add-path [path]
-  (swap! paths conj path))
-
 (defn ^{:future-ns :statement-executor-impl}
   maybe-add-library [slim-id library-name]
   (try
     (require (symbol library-name))
     ;(set-instance slim-id {:kind :library :path (symbol path)})
     true
-    (catch Exception e nil)))
+    (catch Throwable e (println "can't add library path, e=" e) nil)))
 
 (defn ^{:future-ns :statement-executor-impl}
   add-library [slim-id library-name]
@@ -46,6 +42,11 @@
                   (maybe-add-library slim-id (tt/dasherize library-name)))]
     (messages/success)
     (messages/library-error library-name)))
+
+(def paths (atom []))
+(defn add-path [path]
+  (add-library nil path)
+  (swap! paths conj path))
 
 (defn ^{:future-ns :statement-executor-impl}
   create-fixture [slim-id fixture-name args]

@@ -50,8 +50,6 @@
 (defn echo-boolean [this arg]
   (boolean arg))
 
-
-
 (defn should-i-buy-milk []
   (make-fixture))
 
