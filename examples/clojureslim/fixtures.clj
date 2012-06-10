@@ -1,9 +1,10 @@
 (ns clojureslim.fixtures
   (:require [clojureslim.statement-executor :as se])
   (:import [java.io Writer]
-           [fitnesse.fixtures SplitFixture
-                              DuplicateRows
-                              PageDriver]))
+           ;[fitnesse.fixtures SplitFixture
+           ;                   DuplicateRows
+           ;                   PageDriver]
+                              ))
 
 (defrecord TestSlim [constructor-arg state]
   Object
@@ -140,15 +141,14 @@
 (defn uncle []
   (make-fixture))
 
-
 ; TODO: extract?
-(extend-type SplitFixture
-  QueryTable
-  (query [this]
-    (.query this)))
-
-(defn split-fixture [string-to-split]
-  (SplitFixture. string-to-split))
+;(extend-type SplitFixture
+;  QueryTable
+;  (query [this]
+;    (.query this)))
+;
+;(defn split-fixture [string-to-split]
+;  (SplitFixture. string-to-split))
 
 (defn null-fixture
   ([] (make-fixture))
@@ -185,13 +185,13 @@
 (defn do-table [this args]
   )
 
-(extend-type DuplicateRows
-  QueryTable
-  (query [this]
-    (.query this)))
-
-(defn duplicate-rows [arg]
-  (DuplicateRows. arg))
+;(extend-type DuplicateRows
+;  QueryTable
+;  (query [this]
+;    (.query this)))
+;
+;(defn duplicate-rows [arg]
+;  (DuplicateRows. arg))
 
 ; TODO: avoid the need to do things like this by ordering the search path
 (defn set-the-name [this s]
@@ -212,16 +212,16 @@
 (defn create-page-with-content
   ([this page-name content]))
 
-(def page-driver-obj (atom nil))
-(defn page-driver []
-  (or @page-driver-obj
-      (do
-        (swap! page-driver-obj (constantly (PageDriver.)))
-        @page-driver-obj)))
-
-(defn send-as-hash [this h]
-  (let [pd (page-driver)]
-    (.sendAsHash (page-driver) h)))
+;(def page-driver-obj (atom nil))
+;(defn page-driver []
+;  (or @page-driver-obj
+;      (do
+;        (swap! page-driver-obj (constantly (PageDriver.)))
+;        @page-driver-obj)))
+;
+;(defn send-as-hash [this h]
+;  (let [pd (page-driver)]
+;    (.sendAsHash (page-driver) h)))
 
 (defn hash-is [this k]
   (.hashIs this k))
