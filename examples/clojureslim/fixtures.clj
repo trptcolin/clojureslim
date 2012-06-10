@@ -52,7 +52,7 @@
   (boolean arg))
 
 (defn should-i-buy-milk []
-  (make-fixture))
+  (atom {}))
 
 (defn set-cash-in-wallet [this x]
   (swap! this assoc :cash-in-wallet (Integer/parseInt x)))
@@ -76,9 +76,11 @@
 (defn some-decision-table []
   (atom {}))
 
-;(defmulti set-input [this in] #(type %2))
-(defn set-input [this in]
-  (swap! this assoc :input (Integer/parseInt in)))
+(defmulti set-input #(type %2))
+(defmethod set-input String [this in]
+  (set-input this (Integer/parseInt in)))
+(defmethod set-input :default [this in]
+  (swap! this assoc :input in))
 
 (defn set-string [this in]
   (swap! (:state this) assoc :string in))
