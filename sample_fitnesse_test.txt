@@ -18,6 +18,7 @@
 
 !|import|
 |clojureslim.clj-test|
+|clojureslim.fixtures|
 
 !|script|clj-test-first|
 | check | something happened | false |
