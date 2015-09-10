@@ -1,0 +1,25 @@
+A player can rest for his turn.  This is a valid command that does not move the player.
+
+!include DonutMap
+
+!|script|
+|put|player|in cavern|1|
+|enter command|Rest|for|player|
+|check|cavern|1|has|player|true|
+|check|error message|null|
+
+!|script|
+|enter command|rest|for|player|
+|check|cavern|1|has|player|true|
+|check|error message|null|
+
+!|script|
+|enter command|r|for|player|
+|check|cavern|1|has|player|true|
+|check|error message|null|
+
+!|script|
+|enter command|R|for|player|
+|check|cavern|1|has|player|true|
+|check|error message|null|
+

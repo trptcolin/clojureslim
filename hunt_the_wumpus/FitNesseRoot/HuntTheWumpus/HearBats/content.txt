@@ -1,0 +1,6 @@
+!3 When the player is adjacent to a cavern with bats the message "You hear chirping." should be displayed.
+
+!define OBJECT {bats}
+!define MESSAGE {You hear chirping.}
+
+!include .HuntTheWumpus.AssertionPages.SenseNearbyHazard

@@ -1,0 +1,60 @@
+If the player shoots an arrow through a cavern that contains the Wumpus, the wumpus dies, and the game is over.
+
+!include CrossMap
+
+''Shoot towards the East.''
+|script|
+|put|wumpus|in cavern|3|
+|put|player|in cavern|1|
+|set quiver to|5|
+|enter command|se|for|player|
+|check|message|You have killed the Wumpus.|was printed|true|
+|check|message|Game over.|was printed|true|
+|check|game terminated|true|
+
+''Shoot towards the West.''
+|script|
+|new game|
+|put|wumpus|in cavern|3|
+|put|player|in cavern|5|
+|set quiver to|5|
+|enter command|s w|for|player|
+|check|message|You have killed the Wumpus.|was printed|true|
+|check|message|Game over.|was printed|true|
+|check|game terminated|true|
+
+''Shoot towards the North.''
+|script|
+|new game|
+|put|wumpus|in cavern|3|
+|put|player|in cavern|9|
+|set quiver to|5|
+|enter command|s n|for|player|
+|check|message|You have killed the Wumpus.|was printed|true|
+|check|message|Game over.|was printed|true|
+|check|game terminated|true|
+
+''Shoot towards the South.''
+|script|
+|new game|
+|put|wumpus|in cavern|3|
+|put|player|in cavern|6|
+|set quiver to|5|
+|enter command|s s|for|player|
+|check|message|You have killed the Wumpus.|was printed|true|
+|check|message|Game over.|was printed|true|
+|check|game terminated|true|
+
+----
+Now miss the Wumpus.
+
+''Shoot towards the East, but miss Wumpus..''
+|script|
+|new game|
+|put|wumpus|in cavern|6|
+|put|player|in cavern|1|
+|set quiver to|5|
+|enter command|s e|for|player|
+|check|message|You have killed the Wumpus.|was printed|false|
+|check|message|Game over.|was printed|false|
+|check|game terminated|false|

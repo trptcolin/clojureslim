@@ -1,0 +1,42 @@
+!include CrossMap
+
+''Approach from West.''
+
+|script|
+|freeze wumpus|true|
+|put|${OBJECT}|in cavern|1|
+|put|player|in cavern|3|
+|enter command|w|for|player|
+|check|message|${MESSAGE}|was printed|true|
+|enter command|e|for|player|
+|check|message|${MESSAGE}|was printed|false|
+
+''Approach from North.''
+
+|script|
+|put|${OBJECT}|in cavern|6|
+|put|player|in cavern|3|
+|enter command|n|for|player|
+|check|message|${MESSAGE}|was printed|true|
+|enter command|s|for|player|
+|check|message|${MESSAGE}|was printed|false|
+
+''Approach from East.''
+
+|script|
+|put|${OBJECT}|in cavern|5|
+|put|player|in cavern|3|
+|enter command|e|for|player|
+|check|message|${MESSAGE}|was printed|true|
+|enter command|w|for|player|
+|check|message|${MESSAGE}|was printed|false|
+
+''Approach from South.''
+
+|script|
+|put|${OBJECT}|in cavern|9|
+|put|player|in cavern|3|
+|enter command|s|for|player|
+|check|message|${MESSAGE}|was printed|true|
+|enter command|n|for|player|
+|check|message|${MESSAGE}|was printed|false|

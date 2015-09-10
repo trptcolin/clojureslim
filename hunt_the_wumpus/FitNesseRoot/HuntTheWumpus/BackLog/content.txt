@@ -1,0 +1,14 @@
+!see .HuntTheWumpus.ArrowS.ShootArrow.TestAbbreviationsOfShootCommand
+!see .HuntTheWumpus.ArrowS.ShootArrow.TestCanShootWhenThereAreArrows
+!see .HuntTheWumpus.ArrowS.ShootArrow.TestCannotShootWhenThereAreNoArrows
+!see .HuntTheWumpus.ArrowS.ShootArrow.TestPlayerDiesWhenArrowBouncesOffWallInSameCavern
+
+!see .HuntTheWumpus.KillWumpus
+!see .HuntTheWumpus.WumpusMovesRandomly
+
+!see .HuntTheWumpus.BatTransportRandomly
+!see .HuntTheWumpus.HearBats
+
+!see .HuntTheWumpus.FallInPit
+!see .HuntTheWumpus.HearPit
+

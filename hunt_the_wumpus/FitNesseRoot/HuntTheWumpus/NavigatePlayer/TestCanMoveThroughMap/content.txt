@@ -1,0 +1,47 @@
+Test that we can walk around the map, and back again.  This makes sure we can move both directions through each corridor.
+
+!include DonutMap
+
+ * Walk Clockwise around the donut.
+
+!|script|
+|put|player|in cavern|1|
+|enter command|E|for|player|
+|check|cavern|1|has|player|false|
+|check|cavern|2|has|player|true|
+|enter command|E|for|player|
+|check|cavern|3|has|player|true|
+|enter command|S|for|player|
+|check|cavern|4|has|player|true|
+|enter command|S|for|player|
+|check|cavern|5|has|player|true|
+|enter command|W|for|player|
+|check|cavern|6|has|player|true|
+|enter command|W|for|player|
+|check|cavern|7|has|player|true|
+|enter command|N|for|player|
+|check|cavern|8|has|player|true|
+|enter command|N|for|player|
+|check|cavern|1|has|player|true|
+
+ * Walk Counter-clockwise around the donut.
+
+!|script|
+|put|player|in cavern|1|
+|enter command|S|for|player|
+|check|cavern|8|has|player|true|
+|enter command|S|for|player|
+|check|cavern|7|has|player|true|
+|enter command|E|for|player|
+|check|cavern|6|has|player|true|
+|enter command|E|for|player|
+|check|cavern|5|has|player|true|
+|enter command|N|for|player|
+|check|cavern|4|has|player|true|
+|enter command|N|for|player|
+|check|cavern|3|has|player|true|
+|enter command|W|for|player|
+|check|cavern|2|has|player|true|
+|enter command|W|for|player|
+|check|cavern|1|has|player|true|
+

@@ -1,0 +1,6 @@
+If the player moves into a cavern near a pit, he'll hear wind.
+
+!define OBJECT {pit}
+!define MESSAGE {You hear wind.}
+
+!include .HuntTheWumpus.AssertionPages.SenseNearbyHazard

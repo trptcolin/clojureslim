@@ -7,11 +7,11 @@
 
 (defn find-function
   ([slim-id name]
-    (last ; the var itself
-      ; TODO: pick smarter - use same ns as the constructor?
-      (first ; TODO: handle collisions
-        (filter (fn [[k v]] (= k (symbol name)))
-                (mapcat ns-publics (all-ns)))))))
+   (last                                                    ; the var itself
+     ; TODO: pick smarter - use same ns as the constructor?
+     (first                                                 ; TODO: handle collisions
+       (filter (fn [[k v]] (= k (symbol name)))
+               (mapcat ns-publics (all-ns)))))))
 
 (def instances (atom {}))
 
@@ -29,7 +29,7 @@
     (messages/success)))
 
 (defn ^{:future-ns :statement-executor-impl}
-  maybe-add-library [slim-id library-name]
+maybe-add-library [slim-id library-name]
   (try
     (require (symbol library-name))
     ;(set-instance slim-id {:kind :library :path (symbol path)})
@@ -37,9 +37,9 @@
     (catch Throwable e (println "can't add library path, e=" e) nil)))
 
 (defn ^{:future-ns :statement-executor-impl}
-  add-library [slim-id library-name]
-  (if-let [ok (or (maybe-add-library slim-id library-name)
-                  (maybe-add-library slim-id (tt/dasherize library-name)))]
+add-library [slim-id library-name]
+  (if (or (maybe-add-library slim-id library-name)
+          (maybe-add-library slim-id (tt/dasherize library-name)))
     (messages/success)
     (messages/library-error library-name)))
 
@@ -49,44 +49,44 @@
   (swap! paths conj path))
 
 (defn ^{:future-ns :statement-executor-impl}
-  create-fixture [slim-id fixture-name args]
+create-fixture [slim-id fixture-name args]
   (try
     (let [fixture-name-or-instance (variables/replace-slim-variables fixture-name)
           args (variables/replace-slim-variables args)]
       (cond (not (string? fixture-name-or-instance))
-              (use-existing-fixture slim-id fixture-name-or-instance)
+            (use-existing-fixture slim-id fixture-name-or-instance)
 
             (re-seq #"^library" slim-id)
-              (add-library slim-id fixture-name)
+            (add-library slim-id fixture-name)
 
             (re-seq #"/" fixture-name)
-              (let [[fixture-ns fixture-fn] (string/split fixture-name #"/")]
-                (apply
-                  (ns-resolve (symbol fixture-ns) (symbol fixture-fn))
-                  args))
+            (let [[fixture-ns fixture-fn] (string/split fixture-name #"/")]
+              (apply
+                (ns-resolve (symbol fixture-ns) (symbol fixture-fn))
+                args))
 
             :default
-              (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)]
-                (if-let [fixture-generator (find-function slim-id replaced-fixture-name)]
-                  (let [instance (apply fixture-generator args)]
-                    (set-instance slim-id instance)
-                    (messages/success))
-                  (messages/no-constructor-error replaced-fixture-name args)))))
+            (let [replaced-fixture-name (tt/dasherize fixture-name-or-instance)]
+              (if-let [fixture-generator (find-function slim-id replaced-fixture-name)]
+                (let [instance (apply fixture-generator args)]
+                  (set-instance slim-id instance)
+                  (messages/success))
+                (messages/no-constructor-error replaced-fixture-name args)))))
     (catch Throwable e
       (messages/constructor-error fixture-name args e))))
 
 (defn ^{:future-ns :statement-executor-impl}
-  call-fixture-method [slim-id method-name args]
+call-fixture-method [slim-id method-name args]
   (try
     (let [replaced-args (variables/replace-slim-variables args)
           instance (get-instance slim-id)
           method (find-function slim-id method-name)]
-        (apply method instance replaced-args))
+      (apply method instance replaced-args))
     (catch Throwable e
       (messages/method-call-error slim-id method-name args e))))
 
 (defn ^{:future-ns :statement-executor-impl}
-  call-and-assign [variable slim-id method-name args]
+call-and-assign [variable slim-id method-name args]
   (try
     (let [result (call-fixture-method slim-id method-name args)]
       (variables/assign-slim-variable variable result)

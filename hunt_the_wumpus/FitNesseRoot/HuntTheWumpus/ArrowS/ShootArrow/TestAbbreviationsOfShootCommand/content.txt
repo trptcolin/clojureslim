@@ -1,0 +1,100 @@
+Check all the abbreviations of the shoot command.
+
+!include .HuntTheWumpus.CrossMap
+
+|script|
+|note|lets have lots of arrows to shoot|
+|set quiver to|100|
+|put|player|in cavern|3|
+
+!define destination {6}
+
+ * Try the north abbreviations.
+|script|
+|enter command|shoot north|for|player|
+|check|arrows in cavern|${destination}|1|
+
+|script|
+|enter command|s north|for|player|
+|check|arrows in cavern|${destination}|2|
+
+|script|
+|enter command|shoot n|for|player|
+|check|arrows in cavern|${destination}|3|
+
+|script|
+|enter command|s n|for|player|
+|check|arrows in cavern|${destination}|4|
+
+|script|
+|enter command|sn|for|player|
+|check|arrows in cavern|${destination}|5|
+
+!define destination {9}
+ * Try the south abbreviations.
+|script|
+|enter command|shoot south|for|player|
+|check|arrows in cavern|${destination}|1|
+
+|script|
+|enter command|s south|for|player|
+|check|arrows in cavern|${destination}|2|
+
+|script|
+|enter command|shoot s|for|player|
+|check|arrows in cavern|${destination}|3|
+
+|script|
+|enter command|s s|for|player|
+|check|arrows in cavern|${destination}|4|
+
+|script|
+|enter command|ss|for|player|
+|check|arrows in cavern|${destination}|5|
+
+
+!define destination {1}
+ * Try the west abbreviations.
+|script|
+|enter command|shoot west|for|player|
+|check|arrows in cavern|${destination}|1|
+
+|script|
+|enter command|s west|for|player|
+|check|arrows in cavern|${destination}|2|
+
+|script|
+|enter command|shoot w|for|player|
+|check|arrows in cavern|${destination}|3|
+
+|script|
+|enter command|s w|for|player|
+|check|arrows in cavern|${destination}|4|
+
+|script|
+|enter command|sw|for|player|
+|check|arrows in cavern|${destination}|5|
+
+!define destination {5}
+
+ * Try the east abbreviations.
+|script|
+|enter command|shoot east|for|player|
+|check|arrows in cavern|${destination}|1|
+
+|script|
+|enter command|s east|for|player|
+|check|arrows in cavern|${destination}|2|
+
+|script|
+|enter command|shoot e|for|player|
+|check|arrows in cavern|${destination}|3|
+
+|script|
+|enter command|s e|for|player|
+|check|arrows in cavern|${destination}|4|
+
+|script|
+|enter command|se|for|player|
+|check|arrows in cavern|${destination}|5|
+

@@ -1,0 +1,29 @@
+Make sure the Bats transport randomly.
+
+use a tiny cross map
+{{{
+   [4]
+[1][2][3]
+   [5]
+}}}
+
+|Make map.|
+|start|end|direction|
+|1|2|E|
+|2|3|E|
+|4|2|S|
+|2|5|S|
+
+Use the ''Check random bat transport'' fixture.  It looks a lot like the ''Check random wumpus movement'' fixture.  It puts the bats in cavern 2, and then repeats the following 1000 times.  
+ 1 put player in cavern 1
+ 2 move east
+ 3 count the cavern the player winds up in.
+ 
+|Check random bat transport|
+|cavern|count?|
+|1|>200|
+|2|0|
+|3|>200|
+|4|>200|
+|5|>200|
+

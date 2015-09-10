@@ -1,0 +1,12 @@
+If the player moves into a cavern that contains the Wumpus, the wumpus kills the player, and the game is over.
+
+!include .HuntTheWumpus.CrossMap
+
+|script|
+|put|wumpus|in cavern|2|
+|put|player|in cavern|1|
+|enter command|E|for|player|
+|check|message|You were killed by the Wumpus.|was printed|true|
+|check|message|You can go east.|was printed|false|
+|enter command|E|for|player|
+|check|error message|Your game is over. Go in peace.|

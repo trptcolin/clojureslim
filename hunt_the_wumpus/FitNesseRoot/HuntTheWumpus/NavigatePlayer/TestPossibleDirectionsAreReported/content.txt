@@ -1,0 +1,112 @@
+At the beginning of each turn the game reports the directions that the player can go in.
+Directions are listed in the order of north, south, east, west.
+
+!include DonutMap
+
+|script|
+|put|player|in cavern|1|
+|enter command|Rest|for|player|
+|check|message|You can go north.|was printed|false|
+|check|message|You can go east.|was printed|true|
+|check|message|You can go west.|was printed|false|
+|check|message|You can go south.|was printed|true|
+
+|script|
+|enter command|East|for|player|
+|check|message|You can go north.|was printed|false|
+|check|message|You can go east.|was printed|true|
+|check|message|You can go west.|was printed|true|
+|check|message|You can go south.|was printed|false|
+
+|script|
+|enter command|East|for|player|
+|check|message|You can go north.|was printed|false|
+|check|message|You can go east.|was printed|false|
+|check|message|You can go west.|was printed|true|
+|check|message|You can go south.|was printed|true|
+
+|script|
+|enter command|South|for|player|
+|check|message|You can go north.|was printed|true|
+|check|message|You can go east.|was printed|false|
+|check|message|You can go west.|was printed|false|
+|check|message|You can go south.|was printed|true|
+
+|script|
+|enter command|South|for|player|
+|check|message|You can go north.|was printed|true|
+|check|message|You can go east.|was printed|false|
+|check|message|You can go west.|was printed|true|
+|check|message|You can go south.|was printed|false|
+
+|script|
+|enter command|West|for|player|
+|check|message|You can go north.|was printed|false|
+|check|message|You can go east.|was printed|true|
+|check|message|You can go west.|was printed|true|
+|check|message|You can go south.|was printed|false|
+
+|script|
+|enter command|West|for|player|
+|check|message|You can go north.|was printed|true|
+|check|message|You can go east.|was printed|true|
+|check|message|You can go west.|was printed|false|
+|check|message|You can go south.|was printed|false|
+
+|script|
+|enter command|North|for|player|
+|check|message|You can go north.|was printed|true|
+|check|message|You can go east.|was printed|false|
+|check|message|You can go west.|was printed|false|
+|check|message|You can go south.|was printed|true|
+
+''Now clear the map''
+|script|
+|clear map|
+
+''Add a new map that looks like this.''
+{{{
+       [11][9][10]
+           [8]
+     [1][2][3][4][5]
+           [6]
+           [7]
+}}}
+!|Make map.|
+|start|end|direction|
+|1|2|E|
+|2|3|E|
+|3|4|E|
+|4|5|E|
+|11|9|E|
+|9|10|E|
+|9|8|S|
+|8|3|S|
+|3|6|S|
+|6|7|S|
+
+|script|
+|put|player|in cavern|3|
+|enter command|rest|for|player|
+|check|message|You can go north.|was printed|true|
+|check|message|You can go east.|was printed|true|
+|check|message|You can go west.|was printed|true|
+|check|message|You can go south.|was printed|true|
+
+|script|
+|put|player|in cavern|9|
+|enter command|rest|for|player|
+|check|message|You can go north.|was printed|false|
+|check|message|You can go east.|was printed|true|
+|check|message|You can go west.|was printed|true|
+|check|message|You can go south.|was printed|true|
+
+|script|
+|put|player|in cavern|1|
+|enter command|rest|for|player|
+|check|message|You can go north.|was printed|false|
+|check|message|You can go east.|was printed|true|
+|check|message|You can go west.|was printed|false|
+|check|message|You can go south.|was printed|false|
+
+

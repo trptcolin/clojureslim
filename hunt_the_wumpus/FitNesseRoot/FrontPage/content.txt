@@ -1,0 +1,5 @@
+!3 Welcome to ...
+!1 HuntTheWumpus 
+!3 ... a Clojure adventure
+
+!contents -R

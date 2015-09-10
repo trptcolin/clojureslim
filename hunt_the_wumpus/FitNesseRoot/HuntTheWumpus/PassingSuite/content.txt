@@ -1,0 +1,11 @@
+!see .HuntTheWumpus.NavigatePlayer.TestCanMoveThroughMap
+!see .HuntTheWumpus.NavigatePlayer.TestCantMoveOutOfMap
+!see .HuntTheWumpus.NavigatePlayer.TestCommandAbbreviations
+!see .HuntTheWumpus.NavigatePlayer.TestInvalidCommand
+!see .HuntTheWumpus.NavigatePlayer.TestCanRest
+!see .HuntTheWumpus.NavigatePlayer.TestPossibleDirectionsAreReported
+
+!see .HuntTheWumpus.ArrowS.PickUpArrow
+
+!see .HuntTheWumpus.SmellWumpus
+!see .HuntTheWumpus.GameEnding.KilledByWumpus

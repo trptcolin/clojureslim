@@ -1,7 +1,7 @@
 (ns clojureslim.fixtures
   (:require [clojureslim.statement-executor :as se])
   (:import [java.io Writer]
-           ;[fitnesse.fixtures SplitFixture
+           ;[fitnesse.sh.fixtures SplitFixture
            ;                   DuplicateRows
            ;                   PageDriver]
                               ))
