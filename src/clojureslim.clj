@@ -21,7 +21,7 @@
         slim-factory (make-clojure-slim-factory
                        method-name-translator
                        statement-executor)]
-    (prn "(System/getPropery \"user.dir\":"  (System/getProperty "user.dir"))
+    (println "clojureslim working directory: " (System/getProperty "user.dir"))
     (SlimService/startWithFactory slim-factory options)
     0))
 
