@@ -1,0 +1,1 @@
+(ns clojureslim.fixtures.null)

@@ -1,0 +1,5 @@
+!1 Clojure Slim Acceptance Test Suite
+
+ClojureSlimSuite
+
+!note Release ${FITNESSE_VERSION}

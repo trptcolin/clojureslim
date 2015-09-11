@@ -1,29 +1,24 @@
 (ns clojureslim
-  (:require [clojureslim.statement-executor :as statement-executor]
-            [clojureslim.text-transformations :as tt])
+  (:require [clojureslim.executor :as executor]
+            [chee.string :as cs])
   (:import [fitnesse.slim NameTranslator
                           SlimFactory
                           SlimService]))
 
-(defn make-method-name-translator []
-  (proxy [NameTranslator] []
-    (translate [s] (tt/dasherize s))))
+(deftype ClojureNameTranslator []
+  NameTranslator
+  (translate [_ name] (cs/spear-case name)))
 
-(defn make-clojure-slim-factory [method-name-translator statement-executor]
+(def translator (ClojureNameTranslator.))
+
+(defn ^SlimFactory clojure-slim-factory []
   (proxy [SlimFactory] []
-    (getMethodNameTranslator [] method-name-translator)
-    (getStatementExecutor [] statement-executor)))
+    (getMethodNameTranslator [] translator)
+    (getStatementExecutor [] (executor/new-executor))))
 
 (defn -main [& args]
-  (let [method-name-translator (make-method-name-translator)
-        statement-executor (statement-executor/make-statement-executor)
-        options (SlimService/parseCommandLine (into-array String args))
-        slim-factory (make-clojure-slim-factory
-                       method-name-translator
-                       statement-executor)]
+  (let [options (SlimService/parseCommandLine (into-array String args))
+        slim-factory (clojure-slim-factory)]
     (println "clojureslim working directory: " (System/getProperty "user.dir"))
     (SlimService/startWithFactory slim-factory options)
     0))
-
-
-fitnesseMain.FitNesseMain

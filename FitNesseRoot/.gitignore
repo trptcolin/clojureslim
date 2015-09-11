@@ -1,0 +1,12 @@
+*.zip
+.DS_Store
+.svn
+desktop.ini
+ErrorLogs/*
+files/testProgress/*
+files/testResults/*
+FitNesse/*
+properties
+RecentChanges
+updateDoNotCopyOverList
+updateList

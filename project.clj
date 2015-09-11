@@ -1,7 +1,9 @@
-(defproject clojureslim "0.0.2"
+(defproject clojureslim "1.0.0"
   :description "The Slim (Simple List Invocation Method) protocol implented for Clojure"
 
-  :dependencies [[org.clojure/clojure "1.7.0"]
+  :dependencies [[chee "2.0.0"]
+                 [clj-stacktrace "0.2.8"]
+                 [org.clojure/clojure "1.7.0"]
                  [org.fitnesse/fitnesse "20150814"]]
 
   :plugins [[speclj "3.3.1"]]

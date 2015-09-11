@@ -1,9 +1,12 @@
-pom.xml
 *jar
-/lib/
-/classes/
-.lein-failures
-.lein-deps-sum
 .idea
+.lein-deps-sum
+.lein-failures
+.lein-repl-history
+.nrepl-port
+/classes/
+/lib/
 clojureslim.iml
+pom.xml
+pom.xml.asc
 target

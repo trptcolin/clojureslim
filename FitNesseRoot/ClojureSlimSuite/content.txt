@@ -1,0 +1,4 @@
+!define COMMAND_PATTERN {lein run -m clojureslim -v}
+
+!contents -R2 -g -p -f -h
+
