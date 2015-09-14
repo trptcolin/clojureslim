@@ -1,45 +1,16 @@
-(ns hunt-the-wumpus.fixtures
-  (:require [hunt-the-wumpus.model.commands :refer [translate-direction translate-command]]
+(ns hunt-the-wumpus.fixtures.htw
+  (:require [hunt-the-wumpus.fixtures.context :refer [game-ref last-report]]
+            [hunt-the-wumpus.model.commands :refer [translate-direction translate-command]]
             [hunt-the-wumpus.model.game :as game :refer [perform-command]]
             [hunt-the-wumpus.model.map :refer [add-paths opposite-direction]]
             [hunt-the-wumpus.model.player :refer [place-player player-location move-player-in-direction]]
             [hunt-the-wumpus.model.item :refer [add-items place-item item? items-in]]
             [hunt-the-wumpus.model.hazard :refer [place-hazard hazard?]]))
 
-(def game-ref (ref (game/new-game)))
-(def last-report (atom nil))
-
-(defprotocol SlimTable
-  (execute [this])
-  (end-table [this]))
-
-(defprotocol AddPath
-  (set-start [this start])
-  (set-end [this start])
-  (set-direction [this start]))
-
-(defrecord MapMaker [map start end direction]
-  AddPath
-  (set-start [this value] (reset! start value))
-  (set-end [this value] (reset! end value))
-  (set-direction [this value] (reset! direction value))
-  SlimTable
-  (execute [this]
-    (swap! map add-paths
-           :start @start
-           :end @end
-           :direction (translate-direction @direction)))
-  (end-table [this]
-    (dosync
-      (alter game-ref assoc :caverns @map))))
-
-(defn make-map []
-  (MapMaker. (atom {}) (atom nil) (atom nil) (atom nil)))
-
 (defn clear-map [this]
   )
 
-(defn put-in-cavern [this thing location]
+(defn put-in-cavern [state thing location]
   (dosync
     (cond
       (hazard? thing) (alter game-ref place-hazard thing location)

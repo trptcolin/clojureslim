@@ -1,2 +1,4 @@
 !|Import|
 |hunt-the-wumpus.fixtures|
+
+!|script|htw|

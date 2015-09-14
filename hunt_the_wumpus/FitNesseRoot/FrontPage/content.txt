@@ -2,4 +2,6 @@
 !1 HuntTheWumpus 
 !3 ... a Clojure adventure
 
+See HuntTheWumpus.PassingSuite to run passing tests.
+
 !contents -R

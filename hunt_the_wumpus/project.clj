@@ -6,7 +6,7 @@
             :plugins [[speclj "3.3.1"]]
 
             :profiles {:dev {:dependencies [[speclj "3.3.1"]
-                                            [clojureslim "0.0.2"]]}}
+                                            [clojureslim "1.0.0"]]}}
             :source-paths ["src" "spec"]
             :test-paths ["spec"]
             )
