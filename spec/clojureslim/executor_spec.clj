@@ -40,8 +40,9 @@
   (it "starting state"
     (should= false (.stopHasBeenRequested @executor))
     (should= [] (:paths @(.state @executor)))
-    (should= {} (:instances @(.state @executor)))
-    (should= [] (:libraries @(.state @executor)))
+    (should= {} (dissoc (:instances @(.state @executor)) "library-slim-helper"))
+    (should= [] (rest (:libraries @(.state @executor))))
+    (should= 'fitnesse.slim.slim-helper-library (:ns (meta (first (:libraries @(.state @executor))))))
     )
 
   (it "adds paths"
@@ -51,6 +52,10 @@
     (should= ["foo.bar"] (:paths @(.state @executor)))
     (.addPath @executor "fizz.bang")
     (should= ["foo.bar" "fizz.bang"] (:paths @(.state @executor))))
+
+  (it "set instances"
+    (.setInstance @executor "name_1" "Foey")
+    (should= "Foey" (get (:instances @(.state @executor)) "name_1")))
 
   (it "create an instances"
     (.addPath @executor "clojureslim.fixtures")
@@ -67,15 +72,15 @@
       (.create @executor "name_1" "Echo" (into-array Object []))
       (should-fail "No SlimException")
       (catch SlimException e
-        (should= SlimServer/NO_CONSTRUCTOR (.getTag e)))))
+        (should= SlimServer/NO_CONSTRUCTOR (.getTag (.getCause e))))))
 
   (it "create with bad arity"
     (.addPath @executor "clojureslim.fixtures")
     (try
-      (.create @executor "name_1" "Echo" (into-array Object [1 2 3]))
+      (.create @executor "name_1" "Echo" (into-array Object ["1" "2" "3"]))
       (should-fail "No SlimException")
       (catch SlimException e
-        (should= SlimServer/COULD_NOT_INVOKE_CONSTRUCTOR (.getTag e)))))
+        (should= SlimServer/COULD_NOT_INVOKE_CONSTRUCTOR (.getTag (.getCause e))))))
 
   (it "create returning non-atom"
     (.addPath @executor "clojureslim.fixtures")
@@ -83,7 +88,7 @@
       (.create @executor "name_1" "NonAtomCtor" (into-array Object []))
       (should-fail "No SlimException")
       (catch SlimException e
-        (should= "Fixture constructors must return an atom/ref" (.getMessage e)))))
+        (should-contain "Fixture constructors must return an atom/ref" (.getMessage e)))))
 
   (it "calls a method"
     (.addPath @executor "clojureslim.fixtures")
@@ -106,5 +111,49 @@
     (.addPath @executor "clojureslim.fixtures")
     (.create @executor "library_1" "Echo" (into-array Object []))
     (should= "Hello!" (.call @executor "name_1" "echo" (into-array Object ["Hello!"]))))
+
+  (it "assigns"
+    (.assign @executor "FOO" "bar")
+    (should= "bar" (get (:variables @(.state @executor)) "FOO" :no-such-key)))
+
+  (it "call and assign"
+    (.addPath @executor "clojureslim.fixtures")
+    (.create @executor "name_1" "Echo" (into-array Object []))
+    (.callAndAssign @executor "FOO" "name_1" "echo" (into-array Object ["Hello!"]))
+    (should= "Hello!" (get (:variables @(.state @executor)) "FOO" :no-such-key)))
+
+  (it "reset"
+    (should= false (.stopHasBeenRequested @executor))
+    (swap! (.state @executor) assoc :stop-requested? true)
+    (should= true (.stopHasBeenRequested @executor))
+    (.reset @executor)
+    (should= false (.stopHasBeenRequested @executor)))
+
+  (it "create with var in name"
+    (.addPath @executor "clojureslim.fixtures")
+    (.assign @executor "FOO" "ho")
+    (.create @executor "name_1" "Ec$FOO" (into-array Object []))
+    (let [instance (get (:instances @(.state @executor)) "name_1")]
+      (should= 'clojureslim.fixtures.echo (:ns (meta instance)))))
+
+  (it "create with var in args"
+    (.addPath @executor "clojureslim.fixtures")
+    (.assign @executor "FOO" "bye")
+    (.create @executor "name_1" "Echo" (into-array Object ["good$FOO"]))
+    (let [instance (get (:instances @(.state @executor)) "name_1")]
+      (should= 'clojureslim.fixtures.echo (:ns (meta instance)))
+      (should= "goodbye" (:message @instance))))
+
+  (it "calls a method with var in name"
+    (.addPath @executor "clojureslim.fixtures")
+    (.assign @executor "FOO" "ho")
+    (.create @executor "name_1" "Echo" (into-array Object []))
+    (should= "Hello!" (.call @executor "name_1" "ec$FOO" (into-array Object ["Hello!"]))))
+
+  (it "calls a method with var in args"
+    (.addPath @executor "clojureslim.fixtures")
+    (.assign @executor "FOO" "bye")
+    (.create @executor "name_1" "Echo" (into-array Object []))
+    (should= "goodbye" (.call @executor "name_1" "echo" (into-array Object ["good$FOO"]))))
 
   )

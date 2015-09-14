@@ -23,5 +23,10 @@
 
 (defmacro wrap-java-fixture [fixture-class]
   `(do
+     (defn ~'table [& ~'_])
+     (defn ~'begin-table [& ~'_])
+     (defn ~'reset [& ~'_])
+     (defn ~'end-table [& ~'_])
+     (defn ~'execute [& ~'_])
      (defn new [& args#] (atom (ctor ~fixture-class args#)))
      ~@(method-calling-fn-forms fixture-class)))

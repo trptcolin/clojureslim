@@ -2,7 +2,7 @@
   (:use [clojureslim.variables]
         [speclj.core]))
 
-(describe "replace-slim-variables-in-string"
+(describe "Variables"
 
   (it "gives the argument back by default"
     (should= "foo" (replace-slim-variables-in {} "foo")))

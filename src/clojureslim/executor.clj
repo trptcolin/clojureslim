@@ -2,143 +2,44 @@
   (:require [chee.string :as cs]
             [clj-stacktrace.repl :as st]
             [clojure.set :as set]
-            [clojure.string :as str]
-            [clojureslim.protocol :as protocol]
-            [clojureslim.variables :as variables])
-  (:import [fitnesse.slim StatementExecutor StatementExecutorInterface SlimException SlimServer SlimError]
-           (clojure.lang IReference)))
+            [clojureslim.variables :as variables]
+            [fitnesse.slim.slim-helper-library])
+  (:import [fitnesse.slim StatementExecutorInterface SlimException SlimServer SlimError]
+           (clojure.lang IReference)
+           (java.util List)
+           (java.io FileNotFoundException)))
 
-(defn find-function
-  ([slim-id name]
-   (last                                                    ; the var itself
-     ; TODO: pick smarter - use same ns as the constructor?
-     (first                                                 ; TODO: handle collisions
-       (filter (fn [[k v]] (= k (symbol name)))
-               (mapcat ns-publics (all-ns)))))))
+(defn list-or-string [value]
+  (cond
+    (nil? value) nil
+    (instance? IReference value) (list-or-string @value)
+    (or (instance? List value) (sequential? value) (associative? value)) (mapv list-or-string value)
+    :else (str value)))
 
-(def instances (atom {}))
+(defn resolve-vars [state arg]
+  (variables/replace-slim-variables (:variables @state) arg))
 
-(defn set-instance [slim-id value]
-  (swap! instances assoc slim-id value))
-
-(defn get-instance [slim-id]
-  (get @instances slim-id))
-
-(defmulti create-fixture (fn []))
-
-(defn use-existing-fixture [slim-id fixture-name-or-instance]
-  (do
-    (set-instance slim-id fixture-name-or-instance)
-    (protocol/success)))
-
-(defn maybe-add-library [slim-id library-name]
-  (try
-    (require (symbol library-name))
-    ;(set-instance slim-id {:kind :library :path (symbol path)})
-    true
-    (catch Throwable e (println "can't add library path, e=" e) nil)))
-
-(defn add-library [slim-id library-name]
-  (if (or (maybe-add-library slim-id library-name)
-          (maybe-add-library slim-id (cs/spear-case library-name)))
-    (protocol/success)
-    (protocol/library-error library-name)))
-
-(def paths (atom []))
-(defn add-path [path]
-  (add-library nil path)
-  (swap! paths conj path))
-
-(defn create-fixture [slim-id fixture-name args]
-  (try
-    (let [fixture-name-or-instance (variables/replace-slim-variables fixture-name)
-          args (variables/replace-slim-variables args)]
-      (cond (not (string? fixture-name-or-instance))
-            (use-existing-fixture slim-id fixture-name-or-instance)
-
-            (re-seq #"^library" slim-id)
-            (add-library slim-id fixture-name)
-
-            (re-seq #"/" fixture-name)
-            (let [[fixture-ns fixture-fn] (str/split fixture-name #"/")]
-              (apply
-                (ns-resolve (symbol fixture-ns) (symbol fixture-fn))
-                args))
-
-            :default
-            (let [replaced-fixture-name (cs/spear-case fixture-name-or-instance)]
-              (if-let [fixture-generator (find-function slim-id replaced-fixture-name)]
-                (let [instance (apply fixture-generator args)]
-                  (set-instance slim-id instance)
-                  (protocol/success))
-                (protocol/no-constructor-error replaced-fixture-name args)))))
-    (catch Throwable e
-      (protocol/constructor-error fixture-name args e))))
-
-(defn call-fixture-method [slim-id method-name args]
-  (try
-    (let [replaced-args (variables/replace-slim-variables args)
-          instance (get-instance slim-id)
-          method (find-function slim-id method-name)]
-      (when method
-        (try
-          (apply method instance replaced-args)
-          (catch Throwable e (protocol/method-invokation-error e)))))
-    (catch Throwable e
-      (protocol/method-missing-error slim-id method-name args e))))
-
-(defn call-and-assign [variable slim-id method-name args]
-  (try
-    (let [result (call-fixture-method slim-id method-name args)]
-      (variables/assign-slim-variable variable result)
-      result)
-    (catch Exception e
-      (protocol/unexpected-error e))))
-
-(defn make-statement-executor []
-  (proxy [StatementExecutor] []
-
-    ; TODO: when does this get called?
-    (setVariable [name value])
-
-    (addPath [path]
-      (add-path path))
-
-    (create [slim-id fixture-name args]
-      (create-fixture slim-id fixture-name args))
-
-    (getInstance [slim-id]
-      (get-instance slim-id))
-
-    (call [slim-id method-name args]
-      (call-fixture-method slim-id method-name args))
-
-    ; TODO: anything we need to do here?
-    (stopHasBeenRequested [] false)
-
-    ; TODO: what is this supposed to do?
-    (reset [])
-
-    (callAndAssign [variable slim-id method-name args]
-      (call-and-assign variable slim-id method-name args))))
+(defn resolve-name [state name]
+  (->> name
+       (resolve-vars state)
+       cs/spear-case))
 
 (defn unload-ns [ns-sym]
   (remove-ns ns-sym)
   (dosync (alter @#'clojure.core/*loaded-libs* set/difference #{ns-sym})))
 
-(defn add-path2 [state path]
+(defn add-path [state path]
   (when-not (some #(= path %) (:paths @state))
     (swap! state update-in [:paths] conj path)))
 
-(defn existing-ns [ns-tail path]
-  (let [ns-name (str path "." ns-tail)
-        ns-sym (symbol ns-name)]
+(defn existing-ns [ns-str]
+  (let [ns-sym (symbol ns-str)]
     (if (find-ns ns-sym)
       ns-sym
       (try
         (require [ns-sym])
         ns-sym
-        (catch java.io.FileNotFoundException _ nil)))))
+        (catch FileNotFoundException _ nil)))))
 
 (defn instantiate [ns args]
   (try
@@ -151,45 +52,42 @@
 (defn store-fixture [state id instance]
   (when (.startsWith id "library")
     (swap! state update-in [:libraries] conj instance))
-  (swap! state assoc-in [:instances id] instance))
+  (swap! state assoc-in [:instances id] instance)
+  instance)
 
-(defn create-fixture2 [state id fixture-name args]
-  (let [ns-tail (cs/spear-case fixture-name)
-        ns (first (filter identity (map #(existing-ns ns-tail %) (:paths @state))))]
-    (if ns
-      (let [instance (instantiate ns args)]
-        (when-not (instance? IReference instance)
-          (throw (SlimException. "Fixture constructors must return an atom/ref")))
-        (alter-meta! instance assoc :ns ns)
-        (store-fixture state id instance))
-      (throw (SlimException. (format "%s[%d]" ns-tail (count args)) SlimServer/NO_CONSTRUCTOR)))))
+(defn- unhandled-exception [state e]
+  (let [ename (.getName (.getClass e))]
+    (if (or (.contains ename "StopTest") (.contains ename "StopSuite"))
+      (swap! state assoc :stop-requested? true)
+      (st/pst e)))
+  (throw (SlimException. ^Throwable e)))
+
+(defn- create-and-store-fixture [state id ns args]
+  (let [args (resolve-vars state args)
+        instance (instantiate ns args)]
+    (when-not (instance? IReference instance)
+      (throw (SlimException. "Fixture constructors must return an atom/ref")))
+    (alter-meta! instance assoc :ns ns)
+    (store-fixture state id instance)))
+
+(defn create-fixture [state id fixture-name args]
+  (try
+    (let [potential-actor (resolve-vars state fixture-name)]
+      (if (and potential-actor (not (string? potential-actor)))
+        (store-fixture state id potential-actor)
+        (let [ns-tail (resolve-name state fixture-name)
+              potential-nses (cons ns-tail (map #(str % "." ns-tail) (:paths @state)))
+              ns (first (filter identity (map existing-ns potential-nses)))]
+          (if ns
+            (create-and-store-fixture state id ns args)
+            (throw (SlimException. (format "%s[%d]" ns-tail (count args)) SlimServer/NO_CONSTRUCTOR true))))))
+    (catch Throwable e (unhandled-exception state e))))
 
 (defn- resolve-fixture-method [instance method-name]
-  (prn "method-name instance (meta instance): " method-name instance (meta instance))
   (when instance
     (if-let [ns (:ns (meta instance))]
-      (do
-        (prn "(ns-resolve ns (symbol method-name)): " (ns-resolve ns (symbol method-name)))
-        (ns-resolve ns (symbol method-name)))
+      (ns-resolve ns (symbol method-name))
       (throw (SlimError. (format "message:<<ns missing on fixture instance>>"))))))
-
-
-
-;(defn do-call [state id method-name args]
-;  (try
-;    (let [fn-name (cs/spear-case method-name)]
-;      (if-let [instance (get (:instances @state) id)]
-;        (if-let [ns (:ns (meta instance))]
-;          (if-let [f (ns-resolve ns (symbol fn-name))]
-;            (apply f (cons instance args))
-;            (throw (SlimError. (format "message:<<%s %s[%d] %s.>>" SlimServer/NO_METHOD_IN_CLASS fn-name (inc (count args)) (name ns)))))
-;          (throw (SlimError. (format "message:<<%s %s. Should be impossible!>>" SlimServer/NO_CLASS id))))
-;        (throw (SlimError. (format "message:<<%s %s.>>" SlimServer/NO_INSTANCE id)))))
-;    (catch Throwable e
-;      (st/pst e)
-;      (SlimException. e))))
-
-()
 
 (defn find-method [state instance method-name]
   (let [fixtures (cons instance (:libraries @state))]
@@ -200,49 +98,47 @@
 
 (defn do-call [state id method-name args]
   (try
-    (let [fn-name (cs/spear-case method-name)
+    (let [fn-name (resolve-name state method-name)
           instance (get (:instances @state) id)]
-      (if-let [[fixture method] (find-method state instance method-name)]
-        (apply method (cons fixture args))
+      (if-let [[fixture method] (find-method state instance fn-name)]
+        (let [resolved-args (resolve-vars state args)
+              full-args (cons fixture resolved-args)]
+          (apply method full-args))
         (if instance
           (throw (SlimError. (format "message:<<%s %s[%d] %s.>>" SlimServer/NO_METHOD_IN_CLASS fn-name (inc (count args)) (name (:ns (meta instance))))))
           (throw (SlimError. (format "message:<<%s %s.>>" SlimServer/NO_INSTANCE id))))))
-    (catch Throwable e
-      (st/pst e)
-      (SlimException. ^Throwable e))))
+    (catch Throwable e (unhandled-exception state e))))
 
+(defn do-call-and-assign [state variable id method-name args]
+  (let [result (do-call state id method-name args)]
+    (swap! state assoc-in [:variables variable] result)
+    (list-or-string result)))
 
 (deftype ClojureStatementExecutor [state]
   StatementExecutorInterface
-  ;Object getSymbol(String var1);
-  ;
-  ;Object getInstance(String var1);
-  ;
+  (getSymbol [_ name] (list-or-string (get-in @state [:variables name])))
+  (getInstance [_ id] (get-in @state [:instances id]))
   (stopHasBeenRequested [_] (boolean (:stop-requested? @state)))
-  ;
-  ;void reset();
-  ;
-  ;void setInstance(String var1, Object var2);
-  ;void assign(String var1, Object var2);
-
-  (addPath [_ path] (add-path2 state path))
-  (create [_ id fixture-name args] (create-fixture2 state id fixture-name args))
-  ;
-  ;Object callAndAssign(String var1, String var2, String var3, Object... var4) throws SlimException;
-  ;
-  ;Object call(String var1, String var2, Object... var3) throws SlimException;
-  (call [_ id method-name args] (do-call state id method-name args))
-  )
+  (reset [_] (swap! state assoc :stop-requested? false))
+  (setInstance [_ id fixture] (swap! state assoc-in [:instances id] fixture))
+  (assign [_ variable value] (swap! state assoc-in [:variables variable] value))
+  (addPath [_ path] (add-path state path))
+  (create [_ id fixture-name args] (create-fixture state id fixture-name args))
+  (call [_ id method-name args] (list-or-string (do-call state id method-name args)))
+  (callAndAssign [_ variable id method-name args] (do-call-and-assign state variable id method-name args)))
 
 (def executor-state
   {:paths           []
    :instances       {}
-   :libraries       []
+   :libraries       () ;LIFO
+   :variables       {}
    :stop-requested? false})
 
 (defn new-executor []
-  (ClojureStatementExecutor. (atom executor-state))
-  )
+  (let [executor (ClojureStatementExecutor. (atom executor-state))
+        helper (create-and-store-fixture (.state executor) "library-slim-helper" 'fitnesse.slim.slim-helper-library [])]
+    (.setStatementExecutor @helper executor)
+    executor))
 
 
 
