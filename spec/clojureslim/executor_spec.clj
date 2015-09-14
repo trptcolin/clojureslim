@@ -1,6 +1,7 @@
 (ns clojureslim.executor-spec
   (:require [speclj.core :refer :all]
-            [clojureslim.executor :refer :all])
+            [clojureslim.executor :refer :all]
+            [clj-stacktrace.repl :as st])
   (:import (fitnesse.slim SlimException SlimServer)))
 
 (deftype Echo [state])
@@ -29,47 +30,81 @@
   ;    assertFalse(myInstance.getSystemUnderTest().speakCalled());
   ;  )
 
+  (before
+    (doseq [ns (filter #(.startsWith (name %) "clojureslim.fixtures") (map #(.getName %) (all-ns)))]
+      (unload-ns ns)))
+  (around [it]
+    (with-redefs [st/pst identity]
+      (it)))
+
   (it "starting state"
     (should= false (.stopHasBeenRequested @executor))
-    (should= [] (:nses @(.state @executor)))
+    (should= [] (:paths @(.state @executor)))
+    (should= {} (:instances @(.state @executor)))
+    (should= [] (:libraries @(.state @executor)))
     )
 
   (it "adds paths"
-    (.addPath @executor "clojureslim.fixtures.echo")
-    (should= ['clojureslim.fixtures.echo] (:nses @(.state @executor)))
-    (.addPath @executor "clojureslim.fixtures.echo")
-    (should= ['clojureslim.fixtures.echo] (:nses @(.state @executor)))
-    (.addPath @executor "clojureslim.fixtures.null")
-    (should= ['clojureslim.fixtures.echo 'clojureslim.fixtures.null] (:nses @(.state @executor))))
+    (.addPath @executor "foo.bar")
+    (should= ["foo.bar"] (:paths @(.state @executor)))
+    (.addPath @executor "foo.bar")
+    (should= ["foo.bar"] (:paths @(.state @executor)))
+    (.addPath @executor "fizz.bang")
+    (should= ["foo.bar" "fizz.bang"] (:paths @(.state @executor))))
 
   (it "create an instances"
-    (.addPath @executor "clojureslim.fixtures.echo")
+    (.addPath @executor "clojureslim.fixtures")
     (.create @executor "name_1" "Echo" (into-array Object []))
     (let [instance (get (:instances @(.state @executor)) "name_1")]
       (should-not-be-nil instance)
-      (should= "clojureslim.fixtures.echo.Echo" (.getName (.getClass instance)))))
+      (should= "clojure.lang.Atom" (.getName (.getClass instance)))
+      (should= 'clojureslim.fixtures.echo (:ns (meta instance)))
+      (should= "nothing" (:message @instance))))
 
   (it "create missing fixture"
+    (.addPath @executor "clojureslim.nowhere")
     (try
       (.create @executor "name_1" "Echo" (into-array Object []))
       (should-fail "No SlimException")
-    (catch SlimException e
-      (should= SlimServer/NO_CONSTRUCTOR (.getTag e)))))
+      (catch SlimException e
+        (should= SlimServer/NO_CONSTRUCTOR (.getTag e)))))
 
   (it "create with bad arity"
-    (.addPath @executor "clojureslim.fixtures.echo")
+    (.addPath @executor "clojureslim.fixtures")
     (try
       (.create @executor "name_1" "Echo" (into-array Object [1 2 3]))
       (should-fail "No SlimException")
-    (catch SlimException e
-      (should= SlimServer/COULD_NOT_INVOKE_CONSTRUCTOR (.getTag e)))))
+      (catch SlimException e
+        (should= SlimServer/COULD_NOT_INVOKE_CONSTRUCTOR (.getTag e)))))
+
+  (it "create returning non-atom"
+    (.addPath @executor "clojureslim.fixtures")
+    (try
+      (.create @executor "name_1" "NonAtomCtor" (into-array Object []))
+      (should-fail "No SlimException")
+      (catch SlimException e
+        (should= "Fixture constructors must return an atom/ref" (.getMessage e)))))
 
   (it "calls a method"
-    (.addPath @executor "clojureslim.fixtures.echo")
+    (.addPath @executor "clojureslim.fixtures")
     (.create @executor "name_1" "Echo" (into-array Object []))
     (let [instance (get (:instances @(.state @executor)) "name_1")]
-      (should= "Hello!" (.call @executor "name_1" "echo" "Hello!"))
-      (should= "Hello!" @(.message instance)))
-    )
+      (should= "Hello!" (.call @executor "name_1" "echo" (into-array Object ["Hello!"])))
+      (should= "Hello!" (:message @instance))))
+
+  (it "adds a library"
+    (.addPath @executor "clojureslim.fixtures")
+    (.create @executor "library_1" "Echo" (into-array Object []))
+    (let [instance (first (:libraries @(.state @executor)))]
+      (should-be-same instance (get (:instances @(.state @executor)) "library_1"))
+      (should-not-be-nil instance)
+      (should= "clojure.lang.Atom" (.getName (.getClass instance)))
+      (should= 'clojureslim.fixtures.echo (:ns (meta instance)))
+      (should= "nothing" (:message @instance))))
+
+  (it "attemps calls on libraries"
+    (.addPath @executor "clojureslim.fixtures")
+    (.create @executor "library_1" "Echo" (into-array Object []))
+    (should= "Hello!" (.call @executor "name_1" "echo" (into-array Object ["Hello!"]))))
 
   )

@@ -1,10 +1,12 @@
 (ns clojureslim.executor
   (:require [chee.string :as cs]
+            [clj-stacktrace.repl :as st]
             [clojure.set :as set]
-            [clojure.string :as string]
+            [clojure.string :as str]
             [clojureslim.protocol :as protocol]
             [clojureslim.variables :as variables])
-  (:import [fitnesse.slim StatementExecutor StatementExecutorInterface SlimException SlimServer]))
+  (:import [fitnesse.slim StatementExecutor StatementExecutorInterface SlimException SlimServer SlimError]
+           (clojure.lang IReference)))
 
 (defn find-function
   ([slim-id name]
@@ -58,7 +60,7 @@
             (add-library slim-id fixture-name)
 
             (re-seq #"/" fixture-name)
-            (let [[fixture-ns fixture-fn] (string/split fixture-name #"/")]
+            (let [[fixture-ns fixture-fn] (str/split fixture-name #"/")]
               (apply
                 (ns-resolve (symbol fixture-ns) (symbol fixture-fn))
                 args))
@@ -120,29 +122,95 @@
     (callAndAssign [variable slim-id method-name args]
       (call-and-assign variable slim-id method-name args))))
 
-;(defn- unload-ns [ns-sym]
-;  (remove-ns ns-sym)
-;  (dosync (alter @#'clojure.core/*loaded-libs* set/difference #{ns-sym})))
+(defn unload-ns [ns-sym]
+  (remove-ns ns-sym)
+  (dosync (alter @#'clojure.core/*loaded-libs* set/difference #{ns-sym})))
 
-(defn- load-ns [state path]
-  (let [ns-sym (symbol path)]
-    (when-not (some #(= ns-sym %) (:nses @state))
-      (require [ns-sym :reload-all true])
-      (swap! state update-in [:nses] conj ns-sym))))
+(defn add-path2 [state path]
+  (when-not (some #(= path %) (:paths @state))
+    (swap! state update-in [:paths] conj path)))
+
+(defn existing-ns [ns-tail path]
+  (let [ns-name (str path "." ns-tail)
+        ns-sym (symbol ns-name)]
+    (if (find-ns ns-sym)
+      ns-sym
+      (try
+        (require [ns-sym])
+        ns-sym
+        (catch java.io.FileNotFoundException _ nil)))))
+
+(defn instantiate [ns args]
+  (try
+    (let [ctor (or (ns-resolve ns 'new) #(atom {}))]
+      (apply ctor args))
+    (catch Throwable e
+      (st/pst e)
+      (throw (SlimException. (format "%s/new[%d]" (name ns) (count args)) e SlimServer/COULD_NOT_INVOKE_CONSTRUCTOR true)))))
+
+(defn store-fixture [state id instance]
+  (when (.startsWith id "library")
+    (swap! state update-in [:libraries] conj instance))
+  (swap! state assoc-in [:instances id] instance))
 
 (defn create-fixture2 [state id fixture-name args]
-  (let [ctor-sym (symbol (str "new-" (cs/spear-case fixture-name)))
-        ctor (first (filter identity (map #(ns-resolve % ctor-sym) (:nses @state))))]
-    (if ctor
-      (try
-        (let [instance (apply ctor args)]
-          (swap! state assoc-in [:instances id] instance))
-        (catch Throwable e
-          (throw (SlimException. (format "%s:%s[%d]" (name ctor-sym) fixture-name (count args)) e SlimServer/COULD_NOT_INVOKE_CONSTRUCTOR true))))
-      (throw (SlimException. (format "%s:%s[%d]" (name ctor-sym) fixture-name (count args)) SlimServer/NO_CONSTRUCTOR)))))
+  (let [ns-tail (cs/spear-case fixture-name)
+        ns (first (filter identity (map #(existing-ns ns-tail %) (:paths @state))))]
+    (if ns
+      (let [instance (instantiate ns args)]
+        (when-not (instance? IReference instance)
+          (throw (SlimException. "Fixture constructors must return an atom/ref")))
+        (alter-meta! instance assoc :ns ns)
+        (store-fixture state id instance))
+      (throw (SlimException. (format "%s[%d]" ns-tail (count args)) SlimServer/NO_CONSTRUCTOR)))))
+
+(defn- resolve-fixture-method [instance method-name]
+  (prn "method-name instance (meta instance): " method-name instance (meta instance))
+  (when instance
+    (if-let [ns (:ns (meta instance))]
+      (do
+        (prn "(ns-resolve ns (symbol method-name)): " (ns-resolve ns (symbol method-name)))
+        (ns-resolve ns (symbol method-name)))
+      (throw (SlimError. (format "message:<<ns missing on fixture instance>>"))))))
+
+
+
+;(defn do-call [state id method-name args]
+;  (try
+;    (let [fn-name (cs/spear-case method-name)]
+;      (if-let [instance (get (:instances @state) id)]
+;        (if-let [ns (:ns (meta instance))]
+;          (if-let [f (ns-resolve ns (symbol fn-name))]
+;            (apply f (cons instance args))
+;            (throw (SlimError. (format "message:<<%s %s[%d] %s.>>" SlimServer/NO_METHOD_IN_CLASS fn-name (inc (count args)) (name ns)))))
+;          (throw (SlimError. (format "message:<<%s %s. Should be impossible!>>" SlimServer/NO_CLASS id))))
+;        (throw (SlimError. (format "message:<<%s %s.>>" SlimServer/NO_INSTANCE id)))))
+;    (catch Throwable e
+;      (st/pst e)
+;      (SlimException. e))))
+
+()
+
+(defn find-method [state instance method-name]
+  (let [fixtures (cons instance (:libraries @state))]
+    (first (remove nil?
+                   (for [fixture fixtures]
+                     (when-let [method (resolve-fixture-method fixture method-name)]
+                       [fixture method]))))))
 
 (defn do-call [state id method-name args]
-  )
+  (try
+    (let [fn-name (cs/spear-case method-name)
+          instance (get (:instances @state) id)]
+      (if-let [[fixture method] (find-method state instance method-name)]
+        (apply method (cons fixture args))
+        (if instance
+          (throw (SlimError. (format "message:<<%s %s[%d] %s.>>" SlimServer/NO_METHOD_IN_CLASS fn-name (inc (count args)) (name (:ns (meta instance))))))
+          (throw (SlimError. (format "message:<<%s %s.>>" SlimServer/NO_INSTANCE id))))))
+    (catch Throwable e
+      (st/pst e)
+      (SlimException. ^Throwable e))))
+
 
 (deftype ClojureStatementExecutor [state]
   StatementExecutorInterface
@@ -157,7 +225,7 @@
   ;void setInstance(String var1, Object var2);
   ;void assign(String var1, Object var2);
 
-  (addPath [_ path] (load-ns state path))
+  (addPath [_ path] (add-path2 state path))
   (create [_ id fixture-name args] (create-fixture2 state id fixture-name args))
   ;
   ;Object callAndAssign(String var1, String var2, String var3, Object... var4) throws SlimException;
@@ -167,11 +235,14 @@
   )
 
 (def executor-state
-  {:nses            []
+  {:paths           []
+   :instances       {}
+   :libraries       []
    :stop-requested? false})
 
 (defn new-executor []
   (ClojureStatementExecutor. (atom executor-state))
   )
+
 
 

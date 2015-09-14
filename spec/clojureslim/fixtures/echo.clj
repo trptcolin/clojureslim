@@ -1,9 +1,7 @@
 (ns clojureslim.fixtures.echo)
 
-(defprotocol Ech
-  (echo [_ message]))
-(deftype Echo [message]
-  Ech
-  (echo [_ m] (reset! message m))
-  )
-(defn new-echo [] (Echo. (atom "nothing")))
+(defn new [] (atom {:message "nothing"}))
+
+(defn echo [state message]
+  (swap! state assoc :message message)
+  message)
